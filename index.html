@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>하스트수리의 삶 - 비율 교정 패치</title>
+  <title>하스트수리의 삶 - 강 공유 & 바다 경계 패치</title>
   <style>
     body {
       background-color: #1a1a2e;
@@ -104,7 +104,7 @@
 <body>
 
   <h1>🦅 하스트수리의 삶</h1>
-  <p class="guide">🦖 크리올로포(몸체·꼬리 2배 연장) | 🦇 하체고프(몸집 유지, 날개 길게 연장)</p>
+  <p class="guide">🌊 강은 모두 이동 가능 | 🚫 바다는 육지 생물 진입 금지</p>
 
   <div id="game-container">
     <canvas id="gameCanvas" width="1250" height="800"></canvas>
@@ -211,11 +211,14 @@
       if (isGameRunning) shootPoison(player, "PLAYER");
     });
 
-    function isWaterArea(px, py, width = 0, height = 0) {
+    // 지형 구분 함수
+    function isOceanArea(px, py, width = 0, height = 0) {
+      return (px + width >= 3400);
+    }
+
+    function isRiverArea(px, py, width = 0, height = 0) {
       const rightX = px + width;
-      if (rightX >= 3400) return true;
-      if (rightX >= 1800 && px <= 2500) return true;
-      return false;
+      return (rightX >= 1800 && px <= 2500);
     }
 
     function shootPoison(shooter, shooterType) {
@@ -300,8 +303,8 @@
 
     function spawnKelenvolare(gender, isBaby = false) {
       entities.push({
-        x: Math.random() * 1200 + 300,
-        y: Math.random() * 2000 + 500,
+        x: Math.random() * 3000 + 200,
+        y: Math.random() * (MAP_HEIGHT - 400) + 200,
         baseSpeed: isBaby ? 2.0 : 3.2,
         speed: isBaby ? 2.0 : 3.2,
         width: isBaby ? 60 : 120,
@@ -330,19 +333,14 @@
       else if (rand < 30) { type = "히네리아"; isTarget = true; }
       else if (rand < 60) { type = "이크티오스테가"; isTarget = true; }
 
-      // 개편된 충돌 크기 비율
-      // 하체고프테릭스: 몸집 거대화 없이 날개 폭 중심 (w: 260, h: 110)
-      // 크리욜로포사우르스: 코를 키우지 않고 몸체/꼬리 2배 연장 (w: 220, h: 65)
       const entityW = type === "하체고프테릭스" ? 260 : (type === "크리욜로포사우르스" ? 220 : (type === "히네리아" ? 120 : 65));
       const entityH = type === "하체고프테릭스" ? 110 : (type === "크리욜로포사우르스" ? 65 : (type === "히네리아" ? 50 : 45));
 
-      let spawnX = Math.random() * (MAP_WIDTH - 400) + 200;
+      let spawnX = Math.random() * 3200 + 100;
       let spawnY = Math.random() * (MAP_HEIGHT - 400) + 200;
 
       if (type === "히네리아") {
-        spawnX = Math.random() * 1200 + 3500;
-      } else if (type !== "이크티오스테가") {
-        spawnX = Math.random() * 1400 + 200;
+        spawnX = Math.random() * 1400 + 1800; // 강 혹은 바다 스폰
       }
 
       const baseSpeed = 1.8 + Math.random() * 2.0;
@@ -365,6 +363,11 @@
 
       player.x += dx; player.y += dy;
       if (dx !== 0 || dy !== 0) player.angle = Math.atan2(dy, dx);
+
+      // 플레이어 바다(x >= 3400) 진입 제한
+      if (player.x + player.width >= 3400) {
+        player.x = 3400 - player.width;
+      }
 
       if (player.hitCooldown > 0) player.hitCooldown--;
 
@@ -585,22 +588,26 @@
         if (e.y <= 0) { e.y = 0; e.angle = -e.angle; }
         else if (e.y + e.height >= MAP_HEIGHT) { e.y = MAP_HEIGHT - e.height; e.angle = -e.angle; }
 
-        if (e.species !== "이크티오스테가") {
-          const inWater = isWaterArea(e.x, e.y, e.width, e.height);
-          if (e.type === "히네리아") {
-            if (!inWater) {
-              e.x -= Math.cos(e.angle) * (e.speed + 2);
-              e.y -= Math.sin(e.angle) * (e.speed + 2);
-              e.angle += Math.PI;
-            }
-          } else {
-            if (inWater) {
-              e.x -= Math.cos(e.angle) * (e.speed + 2);
-              e.y -= Math.sin(e.angle) * (e.speed + 2);
-              e.angle += Math.PI;
-            }
+        // ★ [강은 모두 이동 허용, 바다는 육지 생물 진입 금지] ★
+        const inOcean = isOceanArea(e.x, e.y, e.width, e.height);
+        const inRiver = isRiverArea(e.x, e.y, e.width, e.height);
+
+        if (e.type === "히네리아") {
+          // 해양 생물: 강과 바다 자유롭게 이동, 순수 육지에서만 반사
+          if (!inOcean && !inRiver) {
+            e.x -= Math.cos(e.angle) * (e.speed + 2);
+            e.y -= Math.sin(e.angle) * (e.speed + 2);
+            e.angle += Math.PI;
+          }
+        } else if (e.species !== "이크티오스테가") {
+          // 육지 생물: 강은 이동 가능하지만, 바다(x >= 3400) 진입 금지
+          if (inOcean) {
+            e.x -= Math.cos(e.angle) * (e.speed + 2);
+            e.y -= Math.sin(e.angle) * (e.speed + 2);
+            e.angle += Math.PI;
           }
         }
+        // 이크티오스테가: 어디든 자유 이동
 
         if (checkCollision(player, e)) {
           if (e.isTarget) {
@@ -672,7 +679,6 @@
       });
     }
 
-    // 🦅 1. 하스트 수리
     function drawHaastEagle(w, h, isBaby = false) {
       ctx.fillStyle = isBaby ? "#8d6e63" : "#3e2723";
       
@@ -705,34 +711,29 @@
       ctx.closePath(); ctx.fill();
     }
 
-    // 🦇 ★ [개편] 하체고프테릭스 (몸체 거대화 없이 '날개만 길게 뻗은' 탑다운 렌더링) ★
     function drawHatzegopteryx(w, h, state) {
       const bodyColor = state === "CHASING" ? "#5d4037" : "#3e2723";
       const membraneColor = state === "CHASING" ? "#a93226" : "#6e2c00";
 
-      // 위쪽 길게 뻗은 날개막 (몸체 대비 날개를 2.5배 널찍하게 뻗음)
       ctx.fillStyle = membraneColor;
       ctx.beginPath();
       ctx.moveTo(0, -h * 0.08);
-      ctx.lineTo(-w * 0.1, -h * 0.95); // 날개 끝까지 길게 연장
+      ctx.lineTo(-w * 0.1, -h * 0.95);
       ctx.quadraticCurveTo(-w * 0.15, -h * 0.45, -w * 0.35, -h * 0.08);
       ctx.closePath(); ctx.fill();
 
-      // 아래쪽 길게 뻗은 날개막
       ctx.beginPath();
       ctx.moveTo(0, h * 0.08);
       ctx.lineTo(-w * 0.1, h * 0.95);
       ctx.quadraticCurveTo(-w * 0.15, h * 0.45, -w * 0.35, h * 0.08);
       ctx.closePath(); ctx.fill();
 
-      // 날개 외측 메인 손가락 뼈대
       ctx.strokeStyle = "#d4ac0d"; ctx.lineWidth = 3.5;
       ctx.beginPath();
       ctx.moveTo(0, -h * 0.08); ctx.lineTo(-w * 0.1, -h * 0.95);
       ctx.moveTo(0, h * 0.08); ctx.lineTo(-w * 0.1, h * 0.95);
       ctx.stroke();
 
-      // 적절한 크기의 몸통 & 익룡 목 (거인이 아닌 비율)
       ctx.fillStyle = bodyColor;
       ctx.beginPath(); ctx.ellipse(-w * 0.15, 0, w * 0.15, h * 0.14, 0, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath();
@@ -740,40 +741,33 @@
       ctx.lineTo(w * 0.15, h * 0.07); ctx.lineTo(-w * 0.05, h * 0.08);
       ctx.closePath(); ctx.fill();
 
-      // 직선형 부리
       ctx.fillStyle = "#d4ac0d";
       ctx.beginPath();
       ctx.moveTo(w * 0.12, -h * 0.07); ctx.lineTo(w * 0.45, 0); ctx.lineTo(w * 0.12, h * 0.07);
       ctx.closePath(); ctx.fill();
     }
 
-    // 🦖 ★ [개편] 크리욜로포사우르스 (코쟁이 제거, 몸통과 꼬리만 2배 연장) ★
     function drawCryolophosaurus(w, h, state) {
       const bodyColor = state === "CHASING" ? "#d35400" : "#887711";
 
-      // 2배로 길어진 척추 꼬리
       ctx.fillStyle = bodyColor;
       ctx.beginPath();
       ctx.moveTo(-w * 0.05, -h * 0.16);
-      ctx.lineTo(-w * 0.65, 0); // 꼬리 2배 연장
+      ctx.lineTo(-w * 0.65, 0);
       ctx.lineTo(-w * 0.05, h * 0.16);
       ctx.closePath(); ctx.fill();
 
-      // 2배로 길어진 중앙 몸통 및 골반
       ctx.beginPath(); ctx.ellipse(-w * 0.15, 0, w * 0.28, h * 0.35, 0, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.ellipse(w * 0.08, 0, w * 0.22, h * 0.24, 0, 0, Math.PI * 2); ctx.fill();
 
-      // 표준 비율 주둥이 (코가 과하게 길지 않은 고증 형태)
       ctx.beginPath();
       ctx.moveTo(w * 0.18, -h * 0.14); ctx.lineTo(w * 0.38, 0); ctx.lineTo(w * 0.18, h * 0.14);
       ctx.closePath(); ctx.fill();
 
-      // 크리욜로포 특유의 부채형 가로 벼슬
       ctx.fillStyle = "#e74c3c";
       ctx.beginPath(); ctx.ellipse(w * 0.2, 0, w * 0.04, h * 0.3, 0, 0, Math.PI * 2); ctx.fill();
     }
 
-    // 🦤 4. 켈렌불라레
     function drawKelenvolare(w, h, clackTimer = 0) {
       ctx.fillStyle = "#2c221e";
       ctx.beginPath();
@@ -811,7 +805,6 @@
       ctx.closePath(); ctx.fill();
     }
 
-    // 🕊️ 5. 로드리게스 솔리테어
     function drawSolitaire(w, h) {
       ctx.fillStyle = "#d4ac0d";
       ctx.beginPath(); ctx.ellipse(0, 0, w * 0.35, h * 0.3, 0, 0, Math.PI * 2); ctx.fill();
@@ -828,7 +821,6 @@
       ctx.closePath(); ctx.fill();
     }
 
-    // 🐟 6. 히네리아
     function drawHyneria(w, h) {
       ctx.fillStyle = "#5dade2";
       ctx.beginPath(); ctx.ellipse(0, 0, w * 0.42, h * 0.22, 0, 0, Math.PI * 2); ctx.fill();
@@ -850,7 +842,6 @@
       ctx.closePath(); ctx.fill();
     }
 
-    // 🦎 7. 이크티오스테가
     function drawIchthyostega(w, h) {
       ctx.fillStyle = "#5d4037";
       ctx.beginPath();
