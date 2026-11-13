@@ -3,154 +3,127 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>하스트수리의 삶 - 켈렌불라레 번식 개선</title>
+  <title>하스트수리의 삶 - 완벽 패치</title>
   <style>
-    body {
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden; /* 스크롤 원천 차단 */
       background-color: #1a1a2e;
       color: #ffffff;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 10px;
       user-select: none;
       -webkit-user-select: none;
       touch-action: manipulation;
     }
 
-    h1 { margin-bottom: 5px; color: #f39c12; font-size: 1.5rem; }
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 12px;
+    }
+
+    header {
+      flex-shrink: 0;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      color: #f39c12;
+      font-size: 1.2rem;
+      line-height: 1.2;
+    }
+
+    /* 메인 게임 + 오른쪽 컨트롤 가로 배치 영역 */
+    #main-layout {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      max-width: 1100px;
+      flex: 1;
+      min-height: 0; /* flex 자식 축소 허용 */
+    }
 
     #game-container {
       position: relative;
-      display: inline-block;
-      margin-top: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      max-height: 100%;
+      aspect-ratio: 900 / 540;
     }
 
     #gameCanvas {
       background-color: #222831;
-      border: 4px solid #f39c12;
-      border-radius: 8px;
-      box-shadow: 0 0 20px rgba(243, 156, 18, 0.4);
-      max-width: 100%;
-      height: auto;
-    }
-
-    #start-overlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(10, 14, 25, 0.88);
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      border-radius: 8px; z-index: 10;
-      padding: 15px;
-      box-sizing: border-box;
-    }
-
-    .intro-box {
-      background: rgba(255, 255, 255, 0.08);
-      border: 2px solid rgba(243, 156, 18, 0.5);
-      border-radius: 16px;
-      padding: 18px 24px;
-      max-width: 760px;
-      width: 92%;
-      margin-bottom: 18px;
-      text-align: left;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
-    }
-
-    .intro-box h3 {
-      margin: 0 0 10px 0;
-      color: #f1c40f;
-      font-size: 1.25rem;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-      padding-bottom: 8px;
-    }
-
-    .intro-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-      font-size: 0.92rem;
-      line-height: 1.5;
-    }
-
-    .intro-card {
-      background: rgba(0, 0, 0, 0.35);
-      padding: 10px 14px;
+      border: 3px solid #f39c12;
       border-radius: 10px;
-      border-left: 4px solid #f39c12;
-    }
-
-    .intro-card strong {
+      box-shadow: 0 0 18px rgba(243, 156, 18, 0.35);
+      width: 100%;
+      height: 100%;
       display: block;
-      color: #f39c12;
-      margin-bottom: 4px;
-      font-size: 1rem;
     }
 
-    .tag-prey { color: #2ecc71; font-weight: bold; }
-    .tag-ally { color: #ff79c6; font-weight: bold; }
-    .tag-predator { color: #e74c3c; font-weight: bold; }
-
-    #start-btn {
-      padding: 12px 36px; font-size: 1.4rem; font-weight: bold;
-      color: #ffffff; background-color: #e67e22; border: none;
-      border-radius: 30px; cursor: pointer;
-      box-shadow: 0 5px 15px rgba(230, 126, 34, 0.4);
-      transition: transform 0.15s, background-color 0.15s;
+    /* 오른쪽 조작 패널 */
+    #controls-sidebar {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 2px solid rgba(243, 156, 18, 0.35);
+      border-radius: 14px;
+      padding: 12px;
+      flex-shrink: 0;
     }
 
-    #start-btn:hover {
-      background-color: #d35400;
-      transform: scale(1.04);
-    }
-
-    #help-btn {
-      background-color: #34495e;
-      color: #f1c40f;
-      border: 1.5px solid #f1c40f;
-      border-radius: 15px;
-      padding: 4px 12px;
-      font-size: 0.85rem;
+    .control-label {
+      font-size: 0.75rem;
+      color: #bdc3c7;
       font-weight: bold;
-      cursor: pointer;
-    }
-
-    #help-btn:hover {
-      background-color: #2c3e50;
-    }
-
-    #status {
-      margin-top: 10px; font-size: 1rem;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 8px 15px; border-radius: 20px;
-      display: inline-flex; gap: 15px; align-items: center;
-      flex-wrap: wrap; justify-content: center;
-    }
-
-    .bar-container { display: flex; align-items: center; gap: 6px; }
-    .bar-bg { width: 100px; height: 14px; background-color: #444; border-radius: 8px; overflow: hidden; border: 2px solid #555; }
-    #playerHpBar { width: 100%; height: 100%; background: linear-gradient(90deg, #e74c3c, #c0392b); }
-    #playerOxygenBar { width: 100%; height: 100%; background: linear-gradient(90deg, #3498db, #2ecc71); }
-
-    #controls-wrapper {
-      display: flex; justify-content: center; align-items: center;
-      gap: 15px; margin-top: 10px;
+      margin-bottom: 4px;
+      text-align: center;
     }
 
     #mobile-controls {
-      display: grid; grid-template-columns: repeat(3, 55px);
-      grid-template-rows: repeat(2, 55px); gap: 6px;
+      display: grid;
+      grid-template-columns: repeat(3, 44px);
+      grid-template-rows: repeat(2, 44px);
+      gap: 4px;
     }
 
     .btn-pad {
-      width: 55px; height: 55px;
-      background: rgba(255, 255, 255, 0.15);
-      border: 2px solid rgba(243, 156, 18, 0.6);
-      border-radius: 12px; color: #f39c12;
-      font-size: 1.5rem; font-weight: bold;
-      display: flex; justify-content: center; align-items: center;
-      cursor: pointer; touch-action: manipulation;
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 2px solid rgba(243, 156, 18, 0.65);
+      border-radius: 9px;
+      color: #f39c12;
+      font-size: 1.2rem;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .btn-pad:active {
+      background: rgba(243, 156, 18, 0.4);
+      transform: scale(0.95);
     }
 
     #btn-up { grid-column: 2; grid-row: 1; }
@@ -159,58 +132,218 @@
     #btn-right { grid-column: 3; grid-row: 2; }
 
     .action-btn {
-      width: 75px; height: 75px; border-radius: 50%;
-      font-size: 0.95rem; font-weight: bold;
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      cursor: pointer; touch-action: manipulation;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      font-size: 0.85rem;
+      font-weight: bold;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      touch-action: manipulation;
+      text-align: center;
     }
 
-    #btn-shoot { background: rgba(46, 204, 113, 0.3); border: 3px solid #2ecc71; color: #2ecc71; }
+    .action-btn:active {
+      transform: scale(0.94);
+    }
 
-    .guide { color: #cccccc; font-size: 0.85rem; margin-bottom: 10px; }
+    #btn-shoot {
+      background: rgba(46, 204, 113, 0.25);
+      border: 3px solid #2ecc71;
+      color: #2ecc71;
+      box-shadow: 0 4px 12px rgba(46, 204, 113, 0.25);
+    }
+
+    /* 시작 및 설명 오버레이 */
+    #start-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(10, 14, 25, 0.92);
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      border-radius: 10px; z-index: 10;
+      padding: 10px;
+      overflow-y: auto;
+    }
+
+    .intro-box {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1.5px solid rgba(243, 156, 18, 0.5);
+      border-radius: 12px;
+      padding: 10px 14px;
+      max-width: 680px;
+      width: 96%;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+
+    .intro-box h3 {
+      margin: 0 0 6px 0;
+      color: #f1c40f;
+      font-size: 0.98rem;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      padding-bottom: 4px;
+    }
+
+    .intro-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+      font-size: 0.76rem;
+      line-height: 1.38;
+    }
+
+    .intro-card {
+      background: rgba(0, 0, 0, 0.35);
+      padding: 7px 9px;
+      border-radius: 8px;
+      border-left: 3px solid #f39c12;
+    }
+
+    .intro-card strong {
+      display: block;
+      color: #f39c12;
+      margin-bottom: 2px;
+      font-size: 0.84rem;
+    }
+
+    .tag-prey { color: #2ecc71; font-weight: bold; }
+    .tag-ally { color: #ff79c6; font-weight: bold; }
+    .tag-predator { color: #e74c3c; font-weight: bold; }
+
+    #start-btn {
+      padding: 8px 28px; font-size: 1.05rem; font-weight: bold;
+      color: #ffffff; background-color: #e67e22; border: none;
+      border-radius: 25px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(230, 126, 34, 0.4);
+    }
+
+    #start-btn:hover {
+      background-color: #d35400;
+    }
+
+    /* 하단 상태바 (체력바 & 산소바 항상 보임) */
+    #status {
+      flex-shrink: 0;
+      font-size: 0.88rem;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 5px 14px;
+      border-radius: 20px;
+      display: inline-flex;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .bar-container { display: flex; align-items: center; gap: 5px; }
+    .bar-bg { width: 95px; height: 12px; background-color: #444; border-radius: 6px; overflow: hidden; border: 1.5px solid #666; }
+    #playerHpBar { width: 100%; height: 100%; background: linear-gradient(90deg, #e74c3c, #c0392b); transition: width 0.1s; }
+    #playerOxygenBar { width: 100%; height: 100%; background: linear-gradient(90deg, #3498db, #2ecc71); transition: width 0.1s; }
+
+    #help-btn {
+      background-color: #34495e;
+      color: #f1c40f;
+      border: 1.5px solid #f1c40f;
+      border-radius: 14px;
+      padding: 2px 10px;
+      font-size: 0.78rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #help-btn:hover {
+      background-color: #2c3e50;
+    }
+
+    /* 세로로 아주 좁은 화면(모바일 세로 모드) 대응 */
+    @media (max-width: 720px) {
+      #main-layout {
+        flex-direction: column;
+        gap: 6px;
+      }
+      #game-container {
+        width: 100%;
+        height: auto;
+        max-height: 55dvh;
+      }
+      #controls-sidebar {
+        flex-direction: row;
+        padding: 6px 14px;
+        gap: 18px;
+      }
+    }
   </style>
 </head>
 <body>
 
-  <h1>🦅 하스트수리의 삶</h1>
-  <p class="guide">거대 맹금류 하스트수리가 되어 고대 생태계에서 살아남으세요!</p>
+  <header>
+    <h1>🦅 하스트수리의 삶</h1>
+  </header>
 
-  <div id="game-container">
-    <canvas id="gameCanvas" width="1250" height="800"></canvas>
-    
-    <div id="start-overlay">
-      <h2 id="overlay-title" style="font-size: 1.9rem; color: #f39c12; margin: 0 0 12px 0;">🦅 하스트수리의 삶</h2>
+  <div id="main-layout">
+    <!-- 게임 화면 -->
+    <div id="game-container">
+      <canvas id="gameCanvas" width="900" height="540"></canvas>
       
-      <div class="intro-box">
-        <h3>📖 게임 방법 및 생태계 안내</h3>
-        <div class="intro-grid">
-          <div class="intro-card">
-            <strong>🎯 목표 & 생존 규칙</strong>
-            • 시간이 지나면 <b>산소</b>가 줄어들고, 산소가 0이 되면 <b>체력</b>이 깎입니다.<br>
-            • 먹잇감을 사냥해 체력과 산소를 회복하며 점수를 올리세요!<br>
-            • 숲속 <b>알 둥지</b>에 다가가면 <b>새끼 하스트수리</b>가 태어납니다 (+10점).
+      <div id="start-overlay">
+        <h2 id="overlay-title" style="font-size: 1.35rem; color: #f39c12; margin: 0 0 8px 0;">🦅 하스트수리의 삶</h2>
+        
+        <div class="intro-box">
+          <h3>📖 게임 방법 및 생태계 안내</h3>
+          <div class="intro-grid">
+            <div class="intro-card">
+              <strong>🎯 생존 & 호흡 규칙</strong>
+              • <b>땅(숲) 위</b>에서는 <b>산소</b>가 안전하게 유지/회복됩니다.<br>
+              • <b>강이나 바다</b> 구역으로 들어가면 산소가 줄어들며, 0이 되면 체력이 깎입니다!<br>
+              • 숲속 <b>알 둥지</b>에 가면 새끼가 태어납니다 (+10점).
+            </div>
+            <div class="intro-card">
+              <strong>🎮 조작 방법</strong>
+              • <b>이동:</b> 방향키(▲▼◀▶) 또는 오른쪽 방향 패드<br>
+              • <b>독 발사:</b> 스페이스바 또는 오른쪽 <b>☠️ 독 발사</b> 버튼<br>
+              • 먹잇감을 사냥하면 체력과 산소가 회복됩니다.
+            </div>
+            <div class="intro-card">
+              <strong>🌿 등장 생물 도감</strong>
+              • <span class="tag-prey">[먹잇감]</span> 솔리테어, 히네리아, 이크티오스테가 (부딪혀서 사냥)<br>
+              • <span class="tag-predator">[포식자]</span> 크리욜로포사우르스, 하체고프테릭스 (추격+독 공격! 독으로 처치)<br>
+              • <span class="tag-ally">[아군/중립]</span> 암컷 하스트수리(근접 지원), 켈렌불라레(번식·성장)
+            </div>
           </div>
-          <div class="intro-card">
-            <strong>🎮 조작 방법</strong>
-            • <b>이동:</b> 키보드 방향키 (▲▼◀▶) 또는 화면 하단 방향 버튼<br>
-            • <b>독 발사:</b> 스페이스바(Space) 또는 <b>☠️ 독 발사</b> 버튼<br>
-            • 하늘을 나는 하스트수리는 강·바다·숲 어디든 자유롭게 이동합니다.
-          </div>
-          <div class="intro-card">
-            <strong>🌿 등장 생물 도감</strong>
-            • <span class="tag-prey">[먹잇감]</span> 솔리테어, 히네리아, 이크티오스테가 (부딪히면 사냥 성공!)<br>
-            • <span class="tag-predator">[포식자]</span> 크리욜로포사우르스, 하체고프테릭스 (독으로 처치하세요!)<br>
-            • <span class="tag-ally">[아군/중립]</span> 암컷 하스트수리(포식자 자동 공격), 켈렌불라레(번식·성장)
-          </div>
+        </div>
+
+        <button id="start-btn" onclick="handleStartOrResume()">게임 시작</button>
+      </div>
+    </div>
+
+    <!-- 오른쪽 조작 버튼 영역 -->
+    <aside id="controls-sidebar">
+      <div>
+        <div class="control-label">이동</div>
+        <div id="mobile-controls">
+          <div class="btn-pad" id="btn-up">▲</div>
+          <div class="btn-pad" id="btn-left">◀</div>
+          <div class="btn-pad" id="btn-down">▼</div>
+          <div class="btn-pad" id="btn-right">►</div>
         </div>
       </div>
 
-      <button id="start-btn" onclick="handleStartOrResume()">게임 시작</button>
-    </div>
+      <div>
+        <div class="control-label">공격 (Space)</div>
+        <div id="btn-shoot" class="action-btn">☠️<br>독 발사</div>
+      </div>
+    </aside>
   </div>
 
+  <!-- 하단 상태바 -->
   <div id="status">
+    <span>위치: <strong id="terrainText" style="color: #2ecc71;">🌲 숲(안전)</strong></span>
     <span>시간: <strong id="timeStateText" style="color: #f1c40f;">☀️ 낮</strong></span>
     <span>점수: <strong id="scoreText" style="color: #f1c40f;">0</strong></span>
     <div class="bar-container">
@@ -221,23 +354,14 @@
       <span>💨 산소:</span>
       <div class="bar-bg"><div id="playerOxygenBar"></div></div>
     </div>
-    <button id="help-btn" onclick="openHelp()">📖 게임 설명</button>
-  </div>
-
-  <div id="controls-wrapper">
-    <div id="mobile-controls">
-      <div class="btn-pad" id="btn-up">▲</div>
-      <div class="btn-pad" id="btn-left">◀</div>
-      <div class="btn-pad" id="btn-down">▼</div>
-      <div class="btn-pad" id="btn-right">►</div>
-    </div>
-    <div id="btn-shoot" class="action-btn">☠️<br>독 발사</div>
+    <button id="help-btn" onclick="openHelp()">📖 설명</button>
   </div>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
+    const terrainText = document.getElementById("terrainText");
     const timeStateText = document.getElementById("timeStateText");
     const scoreText = document.getElementById("scoreText");
     const playerHpBar = document.getElementById("playerHpBar");
@@ -255,7 +379,7 @@
     const RIVER_END = 2450;
     const OCEAN_START = 3400;
 
-    const camera = { x: 0, y: 0, width: 1250, height: 800 };
+    const camera = { x: 0, y: 0, width: canvas.width, height: canvas.height };
 
     let score = 0;
     let gameStartTime = 0;
@@ -349,7 +473,7 @@
       if (shooterType === "PLAYER" && now - lastShootTime < 250) return;
       if (shooterType === "PLAYER") lastShootTime = now;
 
-      const pSpeed = 14;
+      const pSpeed = shooterType === "PLAYER" ? 14 : 11;
       projectiles.push({
         x: shooter.x + shooter.width / 2,
         y: shooter.y + shooter.height / 2,
@@ -357,7 +481,7 @@
         vy: Math.sin(shooter.angle) * pSpeed,
         radius: shooterType === "PLAYER" ? 7 : 8,
         shooterType: shooterType,
-        damage: shooterType === "PLAYER" ? 40 : 15
+        damage: shooterType === "PLAYER" ? 40 : 12
       });
     }
 
@@ -393,41 +517,57 @@
       initNests();
       spawnHaastEagleFemale();
 
-      // 초기 켈렌불라레 배치 (플레이어 근처 숲에도 1쌍 배치해서 쉽게 볼 수 있게 함)
-      spawnKelenvolare("♀", false, 1350, 1450);
-      spawnKelenvolare("♂", false, 1420, 1480);
+      // 초기 켈렌불라레 배치
+      spawnKelenvolare("♀", false, 1320, 1420);
+      spawnKelenvolare("♂", false, 1390, 1450);
 
       for (let i = 0; i < 3; i++) {
         spawnKelenvolare("♀");
         spawnKelenvolare("♂");
       }
 
-      for (let i = 0; i < 28; i++) spawnEntity(true);
+      // 시작 시 플레이어 시야 근처에 포식자 2마리 배치 (바로 긴장감 제공)
+      spawnSpecificPredator("크리욜로포사우르스", 1720, 1450);
+      spawnSpecificPredator("하체고프테릭스", 1180, 1780);
+
+      for (let i = 0; i < 30; i++) spawnEntity(true);
 
       if (spawnIntervalId) clearInterval(spawnIntervalId);
       spawnIntervalId = setInterval(() => {
-        if (isGameRunning && entities.length < 55) spawnEntity(false);
-      }, 1200);
+        if (isGameRunning && entities.length < 60) spawnEntity(false);
+      }, 1100);
+    }
+
+    function spawnSpecificPredator(type, px, py) {
+      const entityW = type === "하체고프테릭스" ? 280 : 240;
+      const entityH = type === "하체고프테릭스" ? 270 : 70;
+      entities.push({
+        x: px, y: py,
+        baseSpeed: 2.8, speed: 2.8,
+        width: entityW, height: entityH,
+        type: type, species: type, isTarget: false, angle: Math.random() * Math.PI * 2,
+        chaseState: "IDLE", chaseTimer: 0, isResting: false, oxygen: 100, hp: 90, maxHp: 90, lastShootTime: 0
+      });
     }
 
     function spawnHaastEagleFemale() {
       entities.push({
-        x: player.x - 150 * x, y: player.y,
+        x: player.x - 110 * x, y: player.y,
         baseSpeed: 6.5, speed: 6.5,
         width: 85, height: 70, type: "하스트수리(♀)",
         species: "하스트수리", gender: "♀", isBaby: false, isTarget: false,
-        angle: 0, orbitAngle: 0, radiusMultiplier: 150, orbitSpeed: 0.03,
+        angle: 0, orbitAngle: 0, radiusMultiplier: 110, orbitSpeed: 0.03,
         hp: 9999, maxHp: 9999, lastShootTime: 0
       });
     }
 
     function spawnHaastEagleBaby() {
       entities.push({
-        x: player.x + 80 * x, y: player.y + 80 * x,
+        x: player.x + 75 * x, y: player.y + 75 * x,
         baseSpeed: 6.5, speed: 6.5,
         width: 48, height: 38, type: "하스트수리(새끼)",
         species: "하스트수리", gender: "👶", isBaby: true, isTarget: false,
-        angle: 0, orbitAngle: Math.PI, radiusMultiplier: 80, orbitSpeed: 0.04,
+        angle: 0, orbitAngle: Math.PI, radiusMultiplier: 75, orbitSpeed: 0.04,
         hp: 9999, maxHp: 9999, lastShootTime: 0
       });
     }
@@ -440,10 +580,9 @@
       }
     }
 
-    // 부모 좌표(customX, customY)가 주어지면 바로 그 옆에서 태어나도록 수정!
     function spawnKelenvolare(gender, isBaby = false, customX = null, customY = null) {
       const kelCount = entities.filter(e => e.species === "켈렌불라레").length;
-      if (kelCount >= 24) return; // 켈렌불라레 자체 최대 수만 제한
+      if (kelCount >= 24) return;
 
       const w = isBaby ? 62 : 120;
       const h = isBaby ? 46 : 85;
@@ -451,7 +590,6 @@
       let spawnX = customX !== null ? customX + (Math.random() * 60 - 30) : getLandSpawnX(w);
       let spawnY = customY !== null ? customY + (Math.random() * 60 - 30) : Math.random() * (MAP_HEIGHT - 400) + 200;
 
-      // 물에 빠지지 않도록 좌표 보정
       if (isWaterArea(spawnX, spawnY, w)) {
         spawnX = customX !== null ? customX : getLandSpawnX(w);
       }
@@ -483,10 +621,11 @@
       let type = "로드리게스솔리테어";
       let isTarget = true;
 
-      if (rand < 8) { type = "크리욜로포사우르스"; isTarget = false; }
-      else if (rand < 14) { type = "하체고프테릭스"; isTarget = false; }
-      else if (rand < 38) { type = "히네리아"; isTarget = true; }
-      else if (rand < 68) { type = "이크티오스테가"; isTarget = true; }
+      // 포식자 등장 확률 상향 (총 22%)
+      if (rand < 12) { type = "크리욜로포사우르스"; isTarget = false; }
+      else if (rand < 22) { type = "하체고프테릭스"; isTarget = false; }
+      else if (rand < 45) { type = "히네리아"; isTarget = true; }
+      else if (rand < 72) { type = "이크티오스테가"; isTarget = true; }
 
       const entityW = type === "하체고프테릭스" ? 280 : (type === "크리욜로포사우르스" ? 240 : (type === "히네리아" ? 120 : (type === "이크티오스테가" ? 130 : 65)));
       const entityH = type === "하체고프테릭스" ? 270 : (type === "크리욜로포사우르스" ? 70 : (type === "히네리아" ? 50 : (type === "이크티오스테가" ? 48 : 45)));
@@ -506,14 +645,15 @@
         spawnX = getLandSpawnX(entityW);
       }
 
-      const baseSpeed = 1.8 + Math.random() * 2.0;
+      const baseSpeed = isTarget ? (1.8 + Math.random() * 1.8) : (2.6 + Math.random() * 1.2);
 
       entities.push({
         x: spawnX, y: spawnY,
         baseSpeed: baseSpeed, speed: baseSpeed,
         width: entityW, height: entityH,
         type: type, species: type, isTarget: isTarget, angle: Math.random() * Math.PI * 2,
-        chaseState: "IDLE", chaseTimer: 0, isResting: false, oxygen: 100, hp: 50, maxHp: 50, lastShootTime: 0
+        chaseState: "IDLE", chaseTimer: 0, isResting: false, oxygen: 100,
+        hp: isTarget ? 45 : 90, maxHp: isTarget ? 45 : 90, lastShootTime: 0
       });
     }
 
@@ -567,8 +707,24 @@
         });
       }
 
-      playerOxygen -= 0.03;
-      if (playerOxygen <= 0) playerHp -= 0.4;
+      // ✅ 1번 버그 완벽 해결: 물(강/바다) 위에 있을 때만 산소 감소, 땅(숲) 위에서는 산소 회복!
+      const playerCenterX = player.x + player.width / 2;
+      const playerCenterY = player.y + player.height / 2;
+      const playerInWater = isWaterArea(playerCenterX, playerCenterY, 0);
+
+      if (playerInWater) {
+        terrainText.innerText = isOceanArea(playerCenterX, playerCenterY) ? "🌊 바다(산소감소)" : "🏞️ 강(산소감소)";
+        terrainText.style.color = "#3498db";
+        playerOxygen = Math.max(0, playerOxygen - 0.14);
+        if (playerOxygen <= 0) {
+          playerHp = Math.max(0, playerHp - 0.35);
+        }
+      } else {
+        terrainText.innerText = "🌲 숲(안전)";
+        terrainText.style.color = "#2ecc71";
+        playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 0.25);
+      }
+
       if (playerHp <= 0) {
         isGameRunning = false;
         isPausedForHelp = false;
@@ -580,6 +736,7 @@
       playerHpBar.style.width = `${(playerHp / MAX_HP) * 100}%`;
       playerOxygenBar.style.width = `${(playerOxygen / MAX_OXYGEN) * 100}%`;
 
+      // 투사체 업데이트
       for (let pIdx = projectiles.length - 1; pIdx >= 0; pIdx--) {
         const p = projectiles[pIdx];
         p.x += p.vx; p.y += p.vy;
@@ -590,9 +747,10 @@
         }
 
         if (p.shooterType === "ENEMY") {
-          const distToPlayer = Math.hypot(p.x - (player.x + player.width/2), p.y - (player.y + player.height/2));
-          if (distToPlayer < p.radius + 25) {
-            playerHp -= p.damage;
+          const distToPlayer = Math.hypot(p.x - playerCenterX, p.y - playerCenterY);
+          if (distToPlayer < p.radius + 26) {
+            playerHp = Math.max(0, playerHp - p.damage);
+            player.hitCooldown = 12;
             projectiles.splice(pIdx, 1);
             continue;
           }
@@ -609,6 +767,12 @@
 
             if (checkCollision(pRect, eRect)) {
               e.hp -= p.damage;
+              // 플레이어가 먼저 공격하면 포식자가 즉시 추격 모드로 전환
+              if (!e.isTarget) {
+                e.chaseState = "CHASING";
+                e.chaseTimer = now;
+                e.isResting = false;
+              }
               projectiles.splice(pIdx, 1);
 
               if (e.hp <= 0) {
@@ -624,10 +788,10 @@
         }
       }
 
+      // 생물 AI 및 충돌 업데이트
       for (let i = entities.length - 1; i >= 0; i--) {
         const e = entities[i];
 
-        // 새끼 켈렌불라레 30초 후 성체로 성장
         if (e.species === "켈렌불라레" && e.isBaby) {
           if (now - e.birthTime >= 30000) {
             e.isBaby = false;
@@ -638,37 +802,39 @@
           }
         }
 
-        const pCenterX = player.x + player.width / 2;
-        const pCenterY = player.y + player.height / 2;
         const eCenterX = e.x + e.width / 2;
         const eCenterY = e.y + e.height / 2;
 
-        const dx = pCenterX - eCenterX;
-        const dy = pCenterY - eCenterY;
+        const dx = playerCenterX - eCenterX;
+        const dy = playerCenterY - eCenterY;
         const distance = Math.hypot(dx, dy);
 
+        // 아군 하스트수리(암컷/새끼)
         if (e.species === "하스트수리" && e !== player) {
           e.orbitAngle = (e.orbitAngle || 0) + (e.orbitSpeed || 0.03);
 
           const currentRadius = e.radiusMultiplier * x;
-          const targetX = pCenterX + Math.cos(e.orbitAngle) * currentRadius - e.width / 2;
-          const targetY = pCenterY + Math.sin(e.orbitAngle) * currentRadius - e.height / 2;
+          const targetX = playerCenterX + Math.cos(e.orbitAngle) * currentRadius - e.width / 2;
+          const targetY = playerCenterY + Math.sin(e.orbitAngle) * currentRadius - e.height / 2;
 
           e.angle = e.orbitAngle + Math.PI / 2;
 
           e.x += (targetX - e.x) * 0.15;
           e.y += (targetY - e.y) * 0.15;
 
+          // 암컷은 가까이 붙은 포식자에게 지속 데미지를 줌 (즉사시키지 않아 긴장감 유지)
           if (e.gender === "♀") {
             for (let j = entities.length - 1; j >= 0; j--) {
               const other = entities[j];
               if (other !== e && other.species !== "하스트수리" && other.species !== "켈렌불라레" && other.isTarget === false) {
                 if (checkCollision(e, other)) {
-                  other.hp = 0;
-                  score += 5;
-                  scoreText.innerText = score;
-                  entities.splice(j, 1);
-                  if (j < i) i--;
+                  other.hp -= 1.5;
+                  if (other.hp <= 0) {
+                    score += 5;
+                    scoreText.innerText = score;
+                    entities.splice(j, 1);
+                    if (j < i) i--;
+                  }
                 }
               }
             }
@@ -676,7 +842,7 @@
           continue;
         }
 
-        // 켈렌불라레 암수 번식 로직 (부모 바로 옆에서 출산 + 15초 쿨타임)
+        // 켈렌불라레 번식 로직
         let isCourting = false;
         if (e.species === "켈렌불라레" && !e.isBaby) {
           for (let j = 0; j < entities.length; j++) {
@@ -685,14 +851,13 @@
               const kDist = Math.hypot(partner.x - e.x, partner.y - e.y);
               if (kDist < 180 && (now - (e.lastBreedTime || 0) > 15000)) {
                 isCourting = true;
-                // 짝에게 서서히 다가가며 부리 부딪히기
                 e.angle = Math.atan2(partner.y - e.y, partner.x - e.x);
                 e.clackTimer = (e.clackTimer || 0) + 1;
                 if (e.clackTimer > 150) {
                   e.clackTimer = 0;
                   e.lastBreedTime = now;
                   partner.lastBreedTime = now;
-                  if (e.gender === "♀") { // 암컷 쪽에서 한 마리만 출산
+                  if (e.gender === "♀") {
                     const babyGender = Math.random() < 0.5 ? "♀" : "♂";
                     spawnKelenvolare(babyGender, true, e.x, e.y);
                   }
@@ -706,10 +871,17 @@
         const prevX = e.x;
         const prevY = e.y;
 
+        // ✅ 3번 버그 완벽 해결: 포식자 적극 추격 및 공격 AI
         if (!e.isTarget && e.species !== "하스트수리" && e.species !== "켈렌불라레") {
-          if (e.chaseState === "IDLE" && distance < 280) {
-            e.chaseState = "CHASING";
-            e.chaseTimer = now;
+          // 520px 이내로 들어오면 즉시 포착 및 추격 개시
+          if (distance < 520) {
+            if (e.chaseState === "IDLE") {
+              e.chaseState = "CHASING";
+              e.chaseTimer = now;
+              e.isResting = false;
+            }
+          } else if (distance > 700) {
+            e.chaseState = "IDLE";
             e.isResting = false;
           }
 
@@ -717,27 +889,25 @@
             if (!e.isResting) {
               const targetAngle = Math.atan2(dy, dx);
               e.angle = targetAngle;
-              e.x += Math.cos(targetAngle) * (e.speed + 1.2);
-              e.y += Math.sin(targetAngle) * (e.speed + 1.2);
+              // 플레이어를 향해 빠르게 돌진
+              e.x += Math.cos(targetAngle) * (e.speed + 1.8);
+              e.y += Math.sin(targetAngle) * (e.speed + 1.8);
 
-              if (now - e.lastShootTime > 2000 && distance < 380) {
+              // 사거리 480px 안에서 1.3초마다 독 발사!
+              if (now - e.lastShootTime > 1300 && distance < 480) {
                 shootPoison(e, "ENEMY");
                 e.lastShootTime = now;
               }
 
-              if (now - e.chaseTimer > 5000) {
+              // 8초 추격 후 0.8초 숨 고르기
+              if (now - e.chaseTimer > 8000) {
                 e.isResting = true;
                 e.chaseTimer = now;
               }
-            } 
-            else {
-              if (now - e.chaseTimer > 1000) {
+            } else {
+              if (now - e.chaseTimer > 800) {
                 e.isResting = false;
                 e.chaseTimer = now;
-
-                if (distance >= 280) {
-                  e.chaseState = "IDLE";
-                }
               }
             }
           } else {
@@ -746,7 +916,7 @@
             e.y += Math.sin(e.angle) * e.speed;
           }
         } else if (e.isTarget || e.species === "켈렌불라레") {
-          if (distance < 150 && e.isTarget) {
+          if (distance < 160 && e.isTarget) {
             e.chaseState = "FLEEING"; e.angle = Math.atan2(-dy, -dx);
           } else e.chaseState = "IDLE";
 
@@ -757,11 +927,13 @@
           e.y += Math.sin(e.angle) * currentSpeed;
         }
 
+        // 맵 경계 반사
         if (e.x <= 0) { e.x = 0; e.angle = Math.PI - e.angle; }
         else if (e.x + e.width >= MAP_WIDTH) { e.x = MAP_WIDTH - e.width; e.angle = Math.PI - e.angle; }
         if (e.y <= 0) { e.y = 0; e.angle = -e.angle; }
         else if (e.y + e.height >= MAP_HEIGHT) { e.y = MAP_HEIGHT - e.height; e.angle = -e.angle; }
 
+        // 지형 경계 체크 (하체고프테릭스는 익룡이므로 추격 시 강을 건널 수 있게 허용)
         const inWater = isWaterArea(e.x, e.y, e.width);
 
         if (e.type === "히네리아") {
@@ -770,7 +942,7 @@
             e.y = prevY;
             e.angle = Math.PI - e.angle + (Math.random() - 0.5) * 0.4;
           }
-        } else if (e.species !== "이크티오스테가") {
+        } else if (e.species !== "이크티오스테가" && e.type !== "하체고프테릭스") {
           if (inWater) {
             e.x = prevX;
             e.y = prevY;
@@ -778,6 +950,7 @@
           }
         }
 
+        // 플레이어와 생물 직접 충돌 판정
         if (checkCollision(player, e)) {
           if (e.isTarget) {
             score += 1; scoreText.innerText = score;
@@ -785,12 +958,13 @@
             playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 25);
             entities.splice(i, 1);
           } else if (e.species !== "하스트수리" && e.species !== "켈렌불라레") {
+            // 포식자 근접 물기 공격!
             if (player.hitCooldown <= 0) {
-              playerHp -= 15;
+              playerHp = Math.max(0, playerHp - 18);
               player.hitCooldown = 25;
-              const knockAngle = Math.atan2(pCenterY - eCenterY, pCenterX - eCenterX);
-              player.x += Math.cos(knockAngle) * 60;
-              player.y += Math.sin(knockAngle) * 60;
+              const knockAngle = Math.atan2(playerCenterY - eCenterY, playerCenterX - eCenterX);
+              player.x = Math.max(0, Math.min(MAP_WIDTH - player.width, player.x + Math.cos(knockAngle) * 55));
+              player.y = Math.max(0, Math.min(MAP_HEIGHT - player.height, player.y + Math.sin(knockAngle) * 55));
             }
           }
         }
@@ -852,7 +1026,6 @@
       });
     }
 
-    // 🦅 1. 하스트 수리
     function drawHaastEagle(w, h, isBaby = false) {
       ctx.fillStyle = isBaby ? "#8d6e63" : "#3e2723";
       
@@ -885,7 +1058,6 @@
       ctx.closePath(); ctx.fill();
     }
 
-    // 🦇 2. 하체고프테릭스
     function drawHatzegopteryx(w, h, state) {
       const bodyColor = state === "CHASING" ? "#616a6b" : "#7f8c8d";
       const neckColor = state === "CHASING" ? "#707b7c" : "#95a5a6";
@@ -942,14 +1114,13 @@
       ctx.closePath();
       ctx.fill();
 
-      ctx.fillStyle = "#1b2631";
+      ctx.fillStyle = state === "CHASING" ? "#e74c3c" : "#1b2631";
       ctx.beginPath();
-      ctx.arc(w * 0.12, -h * 0.022, 2.2, 0, Math.PI * 2);
-      ctx.arc(w * 0.12, h * 0.022, 2.2, 0, Math.PI * 2);
+      ctx.arc(w * 0.12, -h * 0.022, 2.5, 0, Math.PI * 2);
+      ctx.arc(w * 0.12, h * 0.022, 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // 🦖 3. 크리욜로포사우르스
     function drawCryolophosaurus(w, h, state) {
       const bodyColor = state === "CHASING" ? "#b88a58" : "#9c7e5c";
       const stripeColor = state === "CHASING" ? "#4a2c11" : "#3d2b1f";
@@ -1018,7 +1189,6 @@
       ctx.stroke();
     }
 
-    // 🦤 4. 켈렌불라레 (성체 / 새끼 구분)
     function drawKelenvolare(w, h, clackTimer = 0, isBaby = false) {
       ctx.fillStyle = isBaby ? "#5d4e46" : "#2c221e";
       ctx.beginPath();
@@ -1056,7 +1226,6 @@
       ctx.closePath(); ctx.fill();
     }
 
-    // 🕊️ 5. 로드리게스 솔리테어
     function drawSolitaire(w, h) {
       ctx.fillStyle = "#d4ac0d";
       ctx.beginPath(); ctx.ellipse(0, 0, w * 0.35, h * 0.3, 0, 0, Math.PI * 2); ctx.fill();
@@ -1073,7 +1242,6 @@
       ctx.closePath(); ctx.fill();
     }
 
-    // 🐟 6. 히네리아
     function drawHyneria(w, h) {
       ctx.fillStyle = "#85929e";
       ctx.beginPath();
@@ -1106,7 +1274,6 @@
       ctx.fill();
     }
 
-    // 🦎 7. 이크티오스테가
     function drawIchthyostega(w, h) {
       ctx.fillStyle = "#5d4037";
       ctx.beginPath();
@@ -1191,19 +1358,22 @@
           if (e.species !== "하스트수리" && e.species !== "켈렌불라레") {
             ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
             ctx.fillRect(screenX - 25, screenY - e.height / 2 - 14, 50, 5);
-            ctx.fillStyle = "#2ecc71";
+            ctx.fillStyle = e.isTarget ? "#2ecc71" : "#e74c3c";
             ctx.fillRect(screenX - 25, screenY - e.height / 2 - 14, (e.hp / e.maxHp) * 50, 5);
           }
 
-          ctx.font = "bold 13px Arial";
+          ctx.font = "bold 12px Arial";
           if (e.species === "하스트수리") {
             ctx.fillStyle = e.isBaby ? "#f1c40f" : "#ff79c6";
           } else if (e.species === "켈렌불라레") {
             ctx.fillStyle = e.isBaby ? "#74b9ff" : "#a29bfe";
+          } else if (!e.isTarget) {
+            ctx.fillStyle = e.chaseState === "CHASING" ? "#ff6b6b" : "#ffa502";
           } else {
             ctx.fillStyle = "#ffffff";
           }
-          ctx.fillText(`${e.type}${e.isResting ? ' (휴식)' : ''}`, screenX - 30, screenY - e.height / 2 - 18);
+          const alertIcon = (!e.isTarget && e.species !== "하스트수리" && e.species !== "켈렌불라레" && e.chaseState === "CHASING") ? "⚠️ " : "";
+          ctx.fillText(`${alertIcon}${e.type}${e.isResting ? ' (휴식)' : ''}`, screenX - 35, screenY - e.height / 2 - 18);
         }
       });
 
@@ -1218,12 +1388,12 @@
         const pScreenX = player.x + player.width / 2 - camera.x;
         const pScreenY = player.y + player.height / 2 - camera.y;
 
-        const lightGrad = ctx.createRadialGradient(pScreenX, pScreenY, 30, pScreenX, pScreenY, 260);
+        const lightGrad = ctx.createRadialGradient(pScreenX, pScreenY, 30, pScreenX, pScreenY, 240);
         lightGrad.addColorStop(0, "rgba(255, 240, 200, 0.25)");
         lightGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
         ctx.fillStyle = lightGrad;
         ctx.beginPath();
-        ctx.arc(pScreenX, pScreenY, 260, 0, Math.PI * 2);
+        ctx.arc(pScreenX, pScreenY, 240, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
