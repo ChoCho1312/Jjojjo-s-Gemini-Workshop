@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>하스트수리의 삶 - 강 공유 & 바다 경계 패치</title>
+  <title>하스트수리의 삶 - 켈렌불라레 번식 개선</title>
   <style>
     body {
       background-color: #1a1a2e;
@@ -37,17 +37,87 @@
     #start-overlay {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(10, 14, 25, 0.88);
       display: flex; flex-direction: column;
       justify-content: center; align-items: center;
       border-radius: 8px; z-index: 10;
+      padding: 15px;
+      box-sizing: border-box;
     }
 
+    .intro-box {
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(243, 156, 18, 0.5);
+      border-radius: 16px;
+      padding: 18px 24px;
+      max-width: 760px;
+      width: 92%;
+      margin-bottom: 18px;
+      text-align: left;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .intro-box h3 {
+      margin: 0 0 10px 0;
+      color: #f1c40f;
+      font-size: 1.25rem;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      padding-bottom: 8px;
+    }
+
+    .intro-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .intro-card {
+      background: rgba(0, 0, 0, 0.35);
+      padding: 10px 14px;
+      border-radius: 10px;
+      border-left: 4px solid #f39c12;
+    }
+
+    .intro-card strong {
+      display: block;
+      color: #f39c12;
+      margin-bottom: 4px;
+      font-size: 1rem;
+    }
+
+    .tag-prey { color: #2ecc71; font-weight: bold; }
+    .tag-ally { color: #ff79c6; font-weight: bold; }
+    .tag-predator { color: #e74c3c; font-weight: bold; }
+
     #start-btn {
-      padding: 12px 30px; font-size: 1.5rem; font-weight: bold;
+      padding: 12px 36px; font-size: 1.4rem; font-weight: bold;
       color: #ffffff; background-color: #e67e22; border: none;
       border-radius: 30px; cursor: pointer;
       box-shadow: 0 5px 15px rgba(230, 126, 34, 0.4);
+      transition: transform 0.15s, background-color 0.15s;
+    }
+
+    #start-btn:hover {
+      background-color: #d35400;
+      transform: scale(1.04);
+    }
+
+    #help-btn {
+      background-color: #34495e;
+      color: #f1c40f;
+      border: 1.5px solid #f1c40f;
+      border-radius: 15px;
+      padding: 4px 12px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #help-btn:hover {
+      background-color: #2c3e50;
     }
 
     #status {
@@ -104,14 +174,39 @@
 <body>
 
   <h1>🦅 하스트수리의 삶</h1>
-  <p class="guide">🌊 강은 모두 이동 가능 | 🚫 바다는 육지 생물 진입 금지</p>
+  <p class="guide">거대 맹금류 하스트수리가 되어 고대 생태계에서 살아남으세요!</p>
 
   <div id="game-container">
     <canvas id="gameCanvas" width="1250" height="800"></canvas>
     
     <div id="start-overlay">
-      <h2 id="overlay-title" style="font-size: 2rem; color: #f39c12; margin-bottom: 20px;">🦅 하스트수리의 삶</h2>
-      <button id="start-btn" onclick="startGame()">게임 시작</button>
+      <h2 id="overlay-title" style="font-size: 1.9rem; color: #f39c12; margin: 0 0 12px 0;">🦅 하스트수리의 삶</h2>
+      
+      <div class="intro-box">
+        <h3>📖 게임 방법 및 생태계 안내</h3>
+        <div class="intro-grid">
+          <div class="intro-card">
+            <strong>🎯 목표 & 생존 규칙</strong>
+            • 시간이 지나면 <b>산소</b>가 줄어들고, 산소가 0이 되면 <b>체력</b>이 깎입니다.<br>
+            • 먹잇감을 사냥해 체력과 산소를 회복하며 점수를 올리세요!<br>
+            • 숲속 <b>알 둥지</b>에 다가가면 <b>새끼 하스트수리</b>가 태어납니다 (+10점).
+          </div>
+          <div class="intro-card">
+            <strong>🎮 조작 방법</strong>
+            • <b>이동:</b> 키보드 방향키 (▲▼◀▶) 또는 화면 하단 방향 버튼<br>
+            • <b>독 발사:</b> 스페이스바(Space) 또는 <b>☠️ 독 발사</b> 버튼<br>
+            • 하늘을 나는 하스트수리는 강·바다·숲 어디든 자유롭게 이동합니다.
+          </div>
+          <div class="intro-card">
+            <strong>🌿 등장 생물 도감</strong>
+            • <span class="tag-prey">[먹잇감]</span> 솔리테어, 히네리아, 이크티오스테가 (부딪히면 사냥 성공!)<br>
+            • <span class="tag-predator">[포식자]</span> 크리욜로포사우르스, 하체고프테릭스 (독으로 처치하세요!)<br>
+            • <span class="tag-ally">[아군/중립]</span> 암컷 하스트수리(포식자 자동 공격), 켈렌불라레(번식·성장)
+          </div>
+        </div>
+      </div>
+
+      <button id="start-btn" onclick="handleStartOrResume()">게임 시작</button>
     </div>
   </div>
 
@@ -126,6 +221,7 @@
       <span>💨 산소:</span>
       <div class="bar-bg"><div id="playerOxygenBar"></div></div>
     </div>
+    <button id="help-btn" onclick="openHelp()">📖 게임 설명</button>
   </div>
 
   <div id="controls-wrapper">
@@ -148,17 +244,23 @@
     const playerOxygenBar = document.getElementById("playerOxygenBar");
     const startOverlay = document.getElementById("start-overlay");
     const overlayTitle = document.getElementById("overlay-title");
+    const startBtn = document.getElementById("start-btn");
 
     const x = 1.0;
 
     const MAP_WIDTH = 5000;
     const MAP_HEIGHT = 3200;
 
+    const RIVER_START = 1950;
+    const RIVER_END = 2450;
+    const OCEAN_START = 3400;
+
     const camera = { x: 0, y: 0, width: 1250, height: 800 };
 
     let score = 0;
     let gameStartTime = 0;
     let isGameRunning = false;
+    let isPausedForHelp = false;
     let spawnIntervalId = null;
 
     let playerHp = 100;
@@ -168,7 +270,7 @@
     let lastShootTime = 0;
 
     const player = {
-      x: 2500, y: 1600, width: 85, height: 70, speed: 6.5, angle: 0,
+      x: 1500, y: 1600, width: 85, height: 70, speed: 6.5, angle: 0,
       species: "하스트수리", gender: "♂", hitCooldown: 0
     };
 
@@ -211,14 +313,35 @@
       if (isGameRunning) shootPoison(player, "PLAYER");
     });
 
-    // 지형 구분 함수
-    function isOceanArea(px, py, width = 0, height = 0) {
-      return (px + width >= 3400);
+    function openHelp() {
+      if (!isGameRunning) return;
+      isPausedForHelp = true;
+      isGameRunning = false;
+      overlayTitle.innerText = "📖 게임 설명 (일시정지)";
+      startBtn.innerText = "계속하기";
+      startOverlay.style.display = "flex";
     }
 
-    function isRiverArea(px, py, width = 0, height = 0) {
-      const rightX = px + width;
-      return (rightX >= 1800 && px <= 2500);
+    function handleStartOrResume() {
+      if (isPausedForHelp) {
+        isPausedForHelp = false;
+        isGameRunning = true;
+        startOverlay.style.display = "none";
+      } else {
+        startGame();
+      }
+    }
+
+    function isOceanArea(px, py, width = 0) {
+      return (px + width >= OCEAN_START);
+    }
+
+    function isRiverArea(px, py, width = 0) {
+      return (px + width >= RIVER_START && px <= RIVER_END);
+    }
+
+    function isWaterArea(px, py, width = 0) {
+      return isOceanArea(px, py, width) || isRiverArea(px, py, width);
     }
 
     function shootPoison(shooter, shooterType) {
@@ -243,7 +366,7 @@
         { id: 0, x: 600, y: 700, width: 70, height: 70, hasEgg: true, eggState: "FERTILIZED" },
         { id: 1, x: 1300, y: 1500, width: 70, height: 70, hasEgg: true, eggState: "FERTILIZED" },
         { id: 2, x: 900, y: 2500, width: 70, height: 70, hasEgg: true, eggState: "FERTILIZED" },
-        { id: 3, x: 3000, y: 900, width: 70, height: 70, hasEgg: true, eggState: "FERTILIZED" }
+        { id: 3, x: 2950, y: 900, width: 70, height: 70, hasEgg: true, eggState: "FERTILIZED" }
       ];
     }
 
@@ -253,30 +376,38 @@
       playerHp = MAX_HP;
       playerOxygen = MAX_OXYGEN;
       isGameRunning = true;
+      isPausedForHelp = false;
       hasBabySpawned = false;
       entities = [];
       projectiles = [];
-      player.x = 2500;
+      player.x = 1500;
       player.y = 1600;
       player.hitCooldown = 0;
 
       scoreText.innerText = score;
       playerHpBar.style.width = "100%";
       playerOxygenBar.style.width = "100%";
+      startBtn.innerText = "다시 시작";
       startOverlay.style.display = "none";
 
       initNests();
       spawnHaastEagleFemale();
+
+      // 초기 켈렌불라레 배치 (플레이어 근처 숲에도 1쌍 배치해서 쉽게 볼 수 있게 함)
+      spawnKelenvolare("♀", false, 1350, 1450);
+      spawnKelenvolare("♂", false, 1420, 1480);
 
       for (let i = 0; i < 3; i++) {
         spawnKelenvolare("♀");
         spawnKelenvolare("♂");
       }
 
-      for (let i = 0; i < 25; i++) spawnEntity(true);
+      for (let i = 0; i < 28; i++) spawnEntity(true);
 
       if (spawnIntervalId) clearInterval(spawnIntervalId);
-      spawnIntervalId = setInterval(() => spawnEntity(false), 1200);
+      spawnIntervalId = setInterval(() => {
+        if (isGameRunning && entities.length < 55) spawnEntity(false);
+      }, 1200);
     }
 
     function spawnHaastEagleFemale() {
@@ -301,19 +432,43 @@
       });
     }
 
-    function spawnKelenvolare(gender, isBaby = false) {
+    function getLandSpawnX(entityWidth) {
+      if (Math.random() < 0.65) {
+        return Math.random() * (RIVER_START - entityWidth - 200) + 100;
+      } else {
+        return Math.random() * (OCEAN_START - RIVER_END - entityWidth - 150) + RIVER_END + 70;
+      }
+    }
+
+    // 부모 좌표(customX, customY)가 주어지면 바로 그 옆에서 태어나도록 수정!
+    function spawnKelenvolare(gender, isBaby = false, customX = null, customY = null) {
+      const kelCount = entities.filter(e => e.species === "켈렌불라레").length;
+      if (kelCount >= 24) return; // 켈렌불라레 자체 최대 수만 제한
+
+      const w = isBaby ? 62 : 120;
+      const h = isBaby ? 46 : 85;
+
+      let spawnX = customX !== null ? customX + (Math.random() * 60 - 30) : getLandSpawnX(w);
+      let spawnY = customY !== null ? customY + (Math.random() * 60 - 30) : Math.random() * (MAP_HEIGHT - 400) + 200;
+
+      // 물에 빠지지 않도록 좌표 보정
+      if (isWaterArea(spawnX, spawnY, w)) {
+        spawnX = customX !== null ? customX : getLandSpawnX(w);
+      }
+
       entities.push({
-        x: Math.random() * 3000 + 200,
-        y: Math.random() * (MAP_HEIGHT - 400) + 200,
-        baseSpeed: isBaby ? 2.0 : 3.2,
-        speed: isBaby ? 2.0 : 3.2,
-        width: isBaby ? 60 : 120,
-        height: isBaby ? 45 : 85,
-        type: `켈렌불라레(${gender})${isBaby ? '(새끼)' : ''}`,
+        x: Math.max(50, Math.min(MAP_WIDTH - w - 50, spawnX)),
+        y: Math.max(50, Math.min(MAP_HEIGHT - h - 50, spawnY)),
+        baseSpeed: isBaby ? 2.2 : 3.2,
+        speed: isBaby ? 2.2 : 3.2,
+        width: w,
+        height: h,
+        type: `켈렌불라레(${gender})${isBaby ? ' 새끼' : ''}`,
         species: "켈렌불라레",
         gender: gender,
         isBaby: isBaby,
         birthTime: Date.now(),
+        lastBreedTime: 0,
         isTarget: false,
         angle: Math.random() * Math.PI * 2,
         chaseState: "IDLE", chaseTimer: 0, isResting: false,
@@ -328,19 +483,27 @@
       let type = "로드리게스솔리테어";
       let isTarget = true;
 
-      if (rand < 5) { type = "크리욜로포사우르스"; isTarget = false; }
-      else if (rand < 10) { type = "하체고프테릭스"; isTarget = false; }
-      else if (rand < 30) { type = "히네리아"; isTarget = true; }
-      else if (rand < 60) { type = "이크티오스테가"; isTarget = true; }
+      if (rand < 8) { type = "크리욜로포사우르스"; isTarget = false; }
+      else if (rand < 14) { type = "하체고프테릭스"; isTarget = false; }
+      else if (rand < 38) { type = "히네리아"; isTarget = true; }
+      else if (rand < 68) { type = "이크티오스테가"; isTarget = true; }
 
-      const entityW = type === "하체고프테릭스" ? 260 : (type === "크리욜로포사우르스" ? 220 : (type === "히네리아" ? 120 : 65));
-      const entityH = type === "하체고프테릭스" ? 110 : (type === "크리욜로포사우르스" ? 65 : (type === "히네리아" ? 50 : 45));
+      const entityW = type === "하체고프테릭스" ? 280 : (type === "크리욜로포사우르스" ? 240 : (type === "히네리아" ? 120 : (type === "이크티오스테가" ? 130 : 65)));
+      const entityH = type === "하체고프테릭스" ? 270 : (type === "크리욜로포사우르스" ? 70 : (type === "히네리아" ? 50 : (type === "이크티오스테가" ? 48 : 45)));
 
-      let spawnX = Math.random() * 3200 + 100;
+      let spawnX = 1000;
       let spawnY = Math.random() * (MAP_HEIGHT - 400) + 200;
 
       if (type === "히네리아") {
-        spawnX = Math.random() * 1400 + 1800; // 강 혹은 바다 스폰
+        if (Math.random() < 0.4) {
+          spawnX = Math.random() * (RIVER_END - RIVER_START - entityW - 40) + RIVER_START + 20;
+        } else {
+          spawnX = Math.random() * (MAP_WIDTH - OCEAN_START - entityW - 100) + OCEAN_START + 50;
+        }
+      } else if (type === "이크티오스테가") {
+        spawnX = Math.random() * (MAP_WIDTH - 400) + 200;
+      } else {
+        spawnX = getLandSpawnX(entityW);
       }
 
       const baseSpeed = 1.8 + Math.random() * 2.0;
@@ -363,11 +526,6 @@
 
       player.x += dx; player.y += dy;
       if (dx !== 0 || dy !== 0) player.angle = Math.atan2(dy, dx);
-
-      // 플레이어 바다(x >= 3400) 진입 제한
-      if (player.x + player.width >= 3400) {
-        player.x = 3400 - player.width;
-      }
 
       if (player.hitCooldown > 0) player.hitCooldown--;
 
@@ -413,7 +571,9 @@
       if (playerOxygen <= 0) playerHp -= 0.4;
       if (playerHp <= 0) {
         isGameRunning = false;
-        overlayTitle.innerText = `게임 오버! (체력 고갈 사망)`;
+        isPausedForHelp = false;
+        overlayTitle.innerText = `게임 오버! (최종 점수: ${score}점)`;
+        startBtn.innerText = "다시 시작";
         startOverlay.style.display = "flex";
       }
 
@@ -467,6 +627,7 @@
       for (let i = entities.length - 1; i >= 0; i--) {
         const e = entities[i];
 
+        // 새끼 켈렌불라레 30초 후 성체로 성장
         if (e.species === "켈렌불라레" && e.isBaby) {
           if (now - e.birthTime >= 30000) {
             e.isBaby = false;
@@ -515,22 +676,35 @@
           continue;
         }
 
+        // 켈렌불라레 암수 번식 로직 (부모 바로 옆에서 출산 + 15초 쿨타임)
+        let isCourting = false;
         if (e.species === "켈렌불라레" && !e.isBaby) {
           for (let j = 0; j < entities.length; j++) {
             const partner = entities[j];
             if (partner.species === "켈렌불라레" && partner.gender !== e.gender && !partner.isBaby) {
               const kDist = Math.hypot(partner.x - e.x, partner.y - e.y);
-              if (kDist < 120) {
+              if (kDist < 180 && (now - (e.lastBreedTime || 0) > 15000)) {
+                isCourting = true;
+                // 짝에게 서서히 다가가며 부리 부딪히기
+                e.angle = Math.atan2(partner.y - e.y, partner.x - e.x);
                 e.clackTimer = (e.clackTimer || 0) + 1;
-                if (e.clackTimer > 300) {
+                if (e.clackTimer > 150) {
                   e.clackTimer = 0;
-                  const babyGender = Math.random() < 0.5 ? "♀" : "♂";
-                  spawnKelenvolare(babyGender, true);
+                  e.lastBreedTime = now;
+                  partner.lastBreedTime = now;
+                  if (e.gender === "♀") { // 암컷 쪽에서 한 마리만 출산
+                    const babyGender = Math.random() < 0.5 ? "♀" : "♂";
+                    spawnKelenvolare(babyGender, true, e.x, e.y);
+                  }
                 }
+                break;
               }
             }
           }
         }
+
+        const prevX = e.x;
+        const prevY = e.y;
 
         if (!e.isTarget && e.species !== "하스트수리" && e.species !== "켈렌불라레") {
           if (e.chaseState === "IDLE" && distance < 280) {
@@ -576,8 +750,8 @@
             e.chaseState = "FLEEING"; e.angle = Math.atan2(-dy, -dx);
           } else e.chaseState = "IDLE";
 
-          const currentSpeed = e.chaseState === "FLEEING" ? e.speed * 1.5 : e.speed;
-          if (e.chaseState === "IDLE") e.angle += (Math.random() - 0.5) * (Math.PI / 45);
+          const currentSpeed = e.chaseState === "FLEEING" ? e.speed * 1.5 : (isCourting ? e.speed * 0.5 : e.speed);
+          if (e.chaseState === "IDLE" && !isCourting) e.angle += (Math.random() - 0.5) * (Math.PI / 45);
 
           e.x += Math.cos(e.angle) * currentSpeed;
           e.y += Math.sin(e.angle) * currentSpeed;
@@ -588,26 +762,21 @@
         if (e.y <= 0) { e.y = 0; e.angle = -e.angle; }
         else if (e.y + e.height >= MAP_HEIGHT) { e.y = MAP_HEIGHT - e.height; e.angle = -e.angle; }
 
-        // ★ [강은 모두 이동 허용, 바다는 육지 생물 진입 금지] ★
-        const inOcean = isOceanArea(e.x, e.y, e.width, e.height);
-        const inRiver = isRiverArea(e.x, e.y, e.width, e.height);
+        const inWater = isWaterArea(e.x, e.y, e.width);
 
         if (e.type === "히네리아") {
-          // 해양 생물: 강과 바다 자유롭게 이동, 순수 육지에서만 반사
-          if (!inOcean && !inRiver) {
-            e.x -= Math.cos(e.angle) * (e.speed + 2);
-            e.y -= Math.sin(e.angle) * (e.speed + 2);
-            e.angle += Math.PI;
+          if (!inWater) {
+            e.x = prevX;
+            e.y = prevY;
+            e.angle = Math.PI - e.angle + (Math.random() - 0.5) * 0.4;
           }
         } else if (e.species !== "이크티오스테가") {
-          // 육지 생물: 강은 이동 가능하지만, 바다(x >= 3400) 진입 금지
-          if (inOcean) {
-            e.x -= Math.cos(e.angle) * (e.speed + 2);
-            e.y -= Math.sin(e.angle) * (e.speed + 2);
-            e.angle += Math.PI;
+          if (inWater) {
+            e.x = prevX;
+            e.y = prevY;
+            e.angle = Math.PI - e.angle + (Math.random() - 0.5) * 0.4;
           }
         }
-        // 이크티오스테가: 어디든 자유 이동
 
         if (checkCollision(player, e)) {
           if (e.isTarget) {
@@ -629,35 +798,39 @@
     }
 
     function drawMapBackground() {
-      const oceanGrad = ctx.createLinearGradient(3400 - camera.x, 0, MAP_WIDTH - camera.x, 0);
+      const oceanGrad = ctx.createLinearGradient(OCEAN_START - camera.x, 0, MAP_WIDTH - camera.x, 0);
       oceanGrad.addColorStop(0, "#1e5f74");
       oceanGrad.addColorStop(1, "#0b3c4d");
       ctx.fillStyle = oceanGrad;
-      ctx.fillRect(3400 - camera.x, 0 - camera.y, 1600, MAP_HEIGHT);
+      ctx.fillRect(OCEAN_START - camera.x, 0 - camera.y, MAP_WIDTH - OCEAN_START, MAP_HEIGHT);
 
-      const forestGrad = ctx.createLinearGradient(0 - camera.x, 0, 3400 - camera.x, 0);
+      const forestGrad = ctx.createLinearGradient(0 - camera.x, 0, OCEAN_START - camera.x, 0);
       forestGrad.addColorStop(0, "#2d4d2d");
       forestGrad.addColorStop(1, "#385e38");
       ctx.fillStyle = forestGrad;
-      ctx.fillRect(0 - camera.x, 0 - camera.y, 3400, MAP_HEIGHT);
+      ctx.fillRect(0 - camera.x, 0 - camera.y, OCEAN_START, MAP_HEIGHT);
 
       ctx.fillStyle = "rgba(15, 35, 15, 0.4)";
       for (let i = 100; i < MAP_HEIGHT; i += 300) {
         ctx.beginPath();
         ctx.arc(400 - camera.x, i - camera.y, 140, 0, Math.PI * 2);
         ctx.arc(1400 - camera.x, i + 100 - camera.y, 160, 0, Math.PI * 2);
-        ctx.arc(2800 - camera.x, i + 50 - camera.y, 150, 0, Math.PI * 2);
+        ctx.arc(2900 - camera.x, i + 50 - camera.y, 150, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      ctx.fillStyle = "#2980b9";
-      ctx.beginPath();
-      ctx.moveTo(1900 - camera.x, 0 - camera.y);
-      ctx.bezierCurveTo(1600 - camera.x, 800 - camera.y, 2400 - camera.x, 2000 - camera.x, 2000 - camera.x, MAP_HEIGHT - camera.y);
-      ctx.lineTo(2500 - camera.x, MAP_HEIGHT - camera.y);
-      ctx.bezierCurveTo(2800 - camera.x, 2000 - camera.y, 2000 - camera.x, 800 - camera.y, 2400 - camera.x, 0 - camera.y);
-      ctx.closePath();
-      ctx.fill();
+      ctx.fillStyle = "#e6c280";
+      ctx.fillRect(RIVER_START - 45 - camera.x, 0 - camera.y, (RIVER_END - RIVER_START) + 90, MAP_HEIGHT);
+
+      const riverGrad = ctx.createLinearGradient(RIVER_START - camera.x, 0, RIVER_END - camera.x, 0);
+      riverGrad.addColorStop(0, "#2471a3");
+      riverGrad.addColorStop(0.5, "#2980b9");
+      riverGrad.addColorStop(1, "#2471a3");
+      ctx.fillStyle = riverGrad;
+      ctx.fillRect(RIVER_START - camera.x, 0 - camera.y, RIVER_END - RIVER_START, MAP_HEIGHT);
+
+      ctx.fillStyle = "#e6c280";
+      ctx.fillRect(OCEAN_START - 45 - camera.x, 0 - camera.y, 45, MAP_HEIGHT);
     }
 
     function drawNests() {
@@ -679,6 +852,7 @@
       });
     }
 
+    // 🦅 1. 하스트 수리
     function drawHaastEagle(w, h, isBaby = false) {
       ctx.fillStyle = isBaby ? "#8d6e63" : "#3e2723";
       
@@ -711,73 +885,150 @@
       ctx.closePath(); ctx.fill();
     }
 
+    // 🦇 2. 하체고프테릭스
     function drawHatzegopteryx(w, h, state) {
-      const bodyColor = state === "CHASING" ? "#5d4037" : "#3e2723";
-      const membraneColor = state === "CHASING" ? "#a93226" : "#6e2c00";
+      const bodyColor = state === "CHASING" ? "#616a6b" : "#7f8c8d";
+      const neckColor = state === "CHASING" ? "#707b7c" : "#95a5a6";
+      const membraneColor = state === "CHASING" ? "#566573" : "#6c7a89";
 
       ctx.fillStyle = membraneColor;
       ctx.beginPath();
-      ctx.moveTo(0, -h * 0.08);
-      ctx.lineTo(-w * 0.1, -h * 0.95);
-      ctx.quadraticCurveTo(-w * 0.15, -h * 0.45, -w * 0.35, -h * 0.08);
-      ctx.closePath(); ctx.fill();
+      ctx.moveTo(-w * 0.05, -h * 0.04);
+      ctx.lineTo(-w * 0.14, -h * 0.50);
+      ctx.quadraticCurveTo(-w * 0.18, -h * 0.22, -w * 0.32, -h * 0.04);
+      ctx.closePath();
+      ctx.fill();
 
       ctx.beginPath();
-      ctx.moveTo(0, h * 0.08);
-      ctx.lineTo(-w * 0.1, h * 0.95);
-      ctx.quadraticCurveTo(-w * 0.15, h * 0.45, -w * 0.35, h * 0.08);
-      ctx.closePath(); ctx.fill();
+      ctx.moveTo(-w * 0.05, h * 0.04);
+      ctx.lineTo(-w * 0.14, h * 0.50);
+      ctx.quadraticCurveTo(-w * 0.18, h * 0.22, -w * 0.32, h * 0.04);
+      ctx.closePath();
+      ctx.fill();
 
-      ctx.strokeStyle = "#d4ac0d"; ctx.lineWidth = 3.5;
+      ctx.strokeStyle = "#bdc3c7";
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(0, -h * 0.08); ctx.lineTo(-w * 0.1, -h * 0.95);
-      ctx.moveTo(0, h * 0.08); ctx.lineTo(-w * 0.1, h * 0.95);
+      ctx.moveTo(-w * 0.05, -h * 0.04);
+      ctx.lineTo(-w * 0.14, -h * 0.50);
+      ctx.moveTo(-w * 0.05, h * 0.04);
+      ctx.lineTo(-w * 0.14, h * 0.50);
       ctx.stroke();
 
       ctx.fillStyle = bodyColor;
-      ctx.beginPath(); ctx.ellipse(-w * 0.15, 0, w * 0.15, h * 0.14, 0, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(-w * 0.05, -h * 0.08); ctx.lineTo(w * 0.15, -h * 0.07);
-      ctx.lineTo(w * 0.15, h * 0.07); ctx.lineTo(-w * 0.05, h * 0.08);
-      ctx.closePath(); ctx.fill();
+      ctx.ellipse(-w * 0.16, 0, w * 0.14, h * 0.06, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-      ctx.fillStyle = "#d4ac0d";
+      ctx.fillStyle = neckColor;
       ctx.beginPath();
-      ctx.moveTo(w * 0.12, -h * 0.07); ctx.lineTo(w * 0.45, 0); ctx.lineTo(w * 0.12, h * 0.07);
-      ctx.closePath(); ctx.fill();
-    }
-
-    function drawCryolophosaurus(w, h, state) {
-      const bodyColor = state === "CHASING" ? "#d35400" : "#887711";
+      ctx.moveTo(-w * 0.06, -h * 0.035);
+      ctx.lineTo(w * 0.10, -h * 0.03);
+      ctx.lineTo(w * 0.10, h * 0.03);
+      ctx.lineTo(-w * 0.06, h * 0.035);
+      ctx.closePath();
+      ctx.fill();
 
       ctx.fillStyle = bodyColor;
       ctx.beginPath();
-      ctx.moveTo(-w * 0.05, -h * 0.16);
-      ctx.lineTo(-w * 0.65, 0);
-      ctx.lineTo(-w * 0.05, h * 0.16);
-      ctx.closePath(); ctx.fill();
+      ctx.ellipse(w * 0.10, 0, w * 0.045, h * 0.038, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-      ctx.beginPath(); ctx.ellipse(-w * 0.15, 0, w * 0.28, h * 0.35, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(w * 0.08, 0, w * 0.22, h * 0.24, 0, 0, Math.PI * 2); ctx.fill();
-
+      ctx.fillStyle = "#d4ac0d";
       ctx.beginPath();
-      ctx.moveTo(w * 0.18, -h * 0.14); ctx.lineTo(w * 0.38, 0); ctx.lineTo(w * 0.18, h * 0.14);
-      ctx.closePath(); ctx.fill();
+      ctx.moveTo(w * 0.11, -h * 0.032);
+      ctx.lineTo(w * 0.65, 0);
+      ctx.lineTo(w * 0.11, h * 0.032);
+      ctx.closePath();
+      ctx.fill();
 
-      ctx.fillStyle = "#e74c3c";
-      ctx.beginPath(); ctx.ellipse(w * 0.2, 0, w * 0.04, h * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#1b2631";
+      ctx.beginPath();
+      ctx.arc(w * 0.12, -h * 0.022, 2.2, 0, Math.PI * 2);
+      ctx.arc(w * 0.12, h * 0.022, 2.2, 0, Math.PI * 2);
+      ctx.fill();
     }
 
-    function drawKelenvolare(w, h, clackTimer = 0) {
-      ctx.fillStyle = "#2c221e";
+    // 🦖 3. 크리욜로포사우르스
+    function drawCryolophosaurus(w, h, state) {
+      const bodyColor = state === "CHASING" ? "#b88a58" : "#9c7e5c";
+      const stripeColor = state === "CHASING" ? "#4a2c11" : "#3d2b1f";
+
+      ctx.fillStyle = bodyColor;
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.05, -h * 0.15);
+      ctx.quadraticCurveTo(-w * 0.35, -h * 0.09, -w * 0.65, 0);
+      ctx.quadraticCurveTo(-w * 0.35, h * 0.09, -w * 0.05, h * 0.15);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.08, -h * 0.18, w * 0.09, h * 0.16, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(-w * 0.08, h * 0.18, w * 0.09, h * 0.16, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.ellipse(0, 0, w * 0.18, h * 0.25, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(w * 0.12, -h * 0.13);
+      ctx.lineTo(w * 0.26, -h * 0.11);
+      ctx.lineTo(w * 0.26, h * 0.11);
+      ctx.lineTo(w * 0.12, h * 0.13);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = stripeColor;
+      const stripePositions = [-0.52, -0.42, -0.32, -0.22, -0.12, -0.02, 0.08, 0.18];
+      stripePositions.forEach((pos, idx) => {
+        const sw = w * 0.022;
+        const sh = idx < 4 ? h * (0.07 + idx * 0.02) : h * 0.28;
+        ctx.beginPath();
+        ctx.ellipse(w * pos, 0, sw, sh, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.fillStyle = bodyColor;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.24, -h * 0.15);
+      ctx.quadraticCurveTo(w * 0.42, -h * 0.14, w * 0.44, 0);
+      ctx.quadraticCurveTo(w * 0.42, h * 0.14, w * 0.24, h * 0.15);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#5d7687";
+      ctx.beginPath();
+      ctx.arc(w * 0.29, -h * 0.11, h * 0.055, 0, Math.PI * 2);
+      ctx.arc(w * 0.29, h * 0.11, h * 0.055, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#8e352e";
+      ctx.beginPath();
+      ctx.ellipse(w * 0.26, -h * 0.12, w * 0.012, h * 0.05, 0, 0, Math.PI * 2);
+      ctx.ellipse(w * 0.26, h * 0.12, w * 0.012, h * 0.05, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#8a5a36";
+      ctx.strokeStyle = "#3d2b1f";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(w * 0.28, 0, w * 0.032, h * 0.26, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // 🦤 4. 켈렌불라레 (성체 / 새끼 구분)
+    function drawKelenvolare(w, h, clackTimer = 0, isBaby = false) {
+      ctx.fillStyle = isBaby ? "#5d4e46" : "#2c221e";
       ctx.beginPath();
       ctx.moveTo(-w * 0.25, -h * 0.12); ctx.lineTo(-w * 0.48, 0); ctx.lineTo(-w * 0.25, h * 0.12);
       ctx.closePath(); ctx.fill();
 
-      ctx.fillStyle = "#4a3b32";
+      ctx.fillStyle = isBaby ? "#7f6c61" : "#4a3b32";
       ctx.beginPath(); ctx.ellipse(-w * 0.05, 0, w * 0.32, h * 0.25, 0, 0, Math.PI * 2); ctx.fill();
 
-      ctx.fillStyle = "#8b4513"; ctx.strokeStyle = "#2b1810"; ctx.lineWidth = 1.8;
+      ctx.fillStyle = isBaby ? "#b87333" : "#8b4513"; ctx.strokeStyle = "#2b1810"; ctx.lineWidth = 1.8;
       ctx.beginPath();
       ctx.moveTo(-w * 0.08, -h * 0.1);
       ctx.quadraticCurveTo(-w * 0.48, -h * 0.9, w * 0.15, -h * 0.7);
@@ -790,11 +1041,11 @@
       ctx.quadraticCurveTo(-w * 0.05, h * 0.35, -w * 0.08, h * 0.1);
       ctx.closePath(); ctx.fill(); ctx.stroke();
 
-      ctx.fillStyle = "#362a24";
+      ctx.fillStyle = isBaby ? "#59483f" : "#362a24";
       ctx.beginPath(); ctx.ellipse(w * 0.18, 0, w * 0.15, h * 0.14, 0, 0, Math.PI * 2); ctx.fill();
 
       const offset = (clackTimer % 4 > 2) ? 4 : 0;
-      ctx.fillStyle = "#d4c585";
+      ctx.fillStyle = isBaby ? "#f9e79f" : "#d4c585";
       ctx.beginPath();
       ctx.moveTo(w * 0.26, -h * 0.1 - offset); ctx.lineTo(w * 0.55, 0); ctx.lineTo(w * 0.26, h * 0.1 + offset);
       ctx.closePath(); ctx.fill();
@@ -805,6 +1056,7 @@
       ctx.closePath(); ctx.fill();
     }
 
+    // 🕊️ 5. 로드리게스 솔리테어
     function drawSolitaire(w, h) {
       ctx.fillStyle = "#d4ac0d";
       ctx.beginPath(); ctx.ellipse(0, 0, w * 0.35, h * 0.3, 0, 0, Math.PI * 2); ctx.fill();
@@ -821,48 +1073,78 @@
       ctx.closePath(); ctx.fill();
     }
 
+    // 🐟 6. 히네리아
     function drawHyneria(w, h) {
-      ctx.fillStyle = "#5dade2";
-      ctx.beginPath(); ctx.ellipse(0, 0, w * 0.42, h * 0.22, 0, 0, Math.PI * 2); ctx.fill();
-
-      ctx.strokeStyle = "#1b4f72"; ctx.lineWidth = 5;
+      ctx.fillStyle = "#85929e";
       ctx.beginPath();
-      ctx.moveTo(-w * 0.3, 0); ctx.lineTo(w * 0.25, 0);
-      ctx.stroke();
-
-      ctx.fillStyle = "#3498db";
-      ctx.beginPath();
-      ctx.ellipse(-w * 0.05, -h * 0.28, w * 0.12, h * 0.14, 0, 0, Math.PI * 2);
-      ctx.ellipse(-w * 0.05, h * 0.28, w * 0.12, h * 0.14, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, w * 0.42, h * 0.23, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = "#2874a6";
+      ctx.fillStyle = "#2c3e50";
       ctx.beginPath();
-      ctx.moveTo(-w * 0.38, -h * 0.2); ctx.lineTo(-w * 0.52, 0); ctx.lineTo(-w * 0.38, h * 0.2);
-      ctx.closePath(); ctx.fill();
+      ctx.ellipse(-w * 0.02, -h * 0.15, w * 0.28, h * 0.032, 0, 0, Math.PI * 2);
+      ctx.ellipse(-w * 0.02, h * 0.15, w * 0.28, h * 0.032, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#5d6d7e";
+      ctx.beginPath();
+      ctx.ellipse(w * 0.06, -h * 0.28, w * 0.11, h * 0.13, -0.35, 0, Math.PI * 2);
+      ctx.ellipse(w * 0.06, h * 0.28, w * 0.11, h * 0.13, 0.35, 0, Math.PI * 2);
+      ctx.ellipse(-w * 0.18, -h * 0.23, w * 0.08, h * 0.09, -0.3, 0, Math.PI * 2);
+      ctx.ellipse(-w * 0.18, h * 0.23, w * 0.08, h * 0.09, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#566573";
+      ctx.beginPath();
+      ctx.ellipse(-w * 0.42, 0, w * 0.12, h * 0.18, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#1b2631";
+      ctx.beginPath();
+      ctx.arc(w * 0.3, -h * 0.08, 2.5, 0, Math.PI * 2);
+      ctx.arc(w * 0.3, h * 0.08, 2.5, 0, Math.PI * 2);
+      ctx.fill();
     }
 
+    // 🦎 7. 이크티오스테가
     function drawIchthyostega(w, h) {
       ctx.fillStyle = "#5d4037";
       ctx.beginPath();
-      ctx.moveTo(-w * 0.15, -h * 0.12);
-      ctx.quadraticCurveTo(-w * 0.38, -h * 0.05, -w * 0.5, 0);
-      ctx.quadraticCurveTo(-w * 0.38, h * 0.05, -w * 0.15, h * 0.12);
-      ctx.closePath(); ctx.fill();
+      ctx.moveTo(-w * 0.02, -h * 0.14);
+      ctx.quadraticCurveTo(-w * 0.35, -h * 0.09, -w * 0.65, 0);
+      ctx.quadraticCurveTo(-w * 0.35, h * 0.09, -w * 0.02, h * 0.14);
+      ctx.closePath();
+      ctx.fill();
 
       ctx.fillStyle = "#6e2c00";
-      ctx.beginPath(); ctx.ellipse(-w * 0.05, 0, w * 0.28, h * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(w * 0.05, 0, w * 0.22, h * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
 
       ctx.fillStyle = "#421b00";
       ctx.beginPath();
-      ctx.rect(-w * 0.2, -h * 0.4, w * 0.1, h * 0.2);
-      ctx.rect(w * 0.05, -h * 0.4, w * 0.1, h * 0.2);
-      ctx.rect(-w * 0.2, h * 0.2, w * 0.1, h * 0.2);
-      ctx.rect(w * 0.05, h * 0.2, w * 0.1, h * 0.2);
+      ctx.rect(-w * 0.08, -h * 0.4, w * 0.07, h * 0.2);
+      ctx.rect(w * 0.12, -h * 0.4, w * 0.07, h * 0.2);
+      ctx.rect(-w * 0.08, h * 0.2, w * 0.07, h * 0.2);
+      ctx.rect(w * 0.12, h * 0.2, w * 0.07, h * 0.2);
       ctx.fill();
 
       ctx.fillStyle = "#795548";
-      ctx.beginPath(); ctx.ellipse(w * 0.22, 0, w * 0.18, h * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(w * 0.28, 0, w * 0.15, h * 0.18, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(w * 0.31, -h * 0.08, 3.2, 0, Math.PI * 2);
+      ctx.arc(w * 0.31, h * 0.08, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#000000";
+      ctx.beginPath();
+      ctx.arc(w * 0.32, -h * 0.08, 1.8, 0, Math.PI * 2);
+      ctx.arc(w * 0.32, h * 0.08, 1.8, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     function draw() {
@@ -897,7 +1179,7 @@
           ctx.rotate(e.angle);
 
           if (e.species === "하스트수리") drawHaastEagle(e.width, e.height, e.isBaby);
-          else if (e.species === "켈렌불라레") drawKelenvolare(e.width, e.height, e.clackTimer);
+          else if (e.species === "켈렌불라레") drawKelenvolare(e.width, e.height, e.clackTimer, e.isBaby);
           else if (e.type === "크리욜로포사우르스") drawCryolophosaurus(e.width, e.height, e.chaseState);
           else if (e.type === "하체고프테릭스") drawHatzegopteryx(e.width, e.height, e.chaseState);
           else if (e.type === "로드리게스솔리테어") drawSolitaire(e.width, e.height);
@@ -914,8 +1196,14 @@
           }
 
           ctx.font = "bold 13px Arial";
-          ctx.fillStyle = (e.species === "하스트수리") ? (e.isBaby ? "#f1c40f" : "#ff79c6") : (e.species === "켈렌불라레" ? "#9b59b6" : "#ffffff");
-          ctx.fillText(`${e.type}${e.isResting ? ' (휴식)' : ''}`, screenX - 25, screenY - e.height / 2 - 20);
+          if (e.species === "하스트수리") {
+            ctx.fillStyle = e.isBaby ? "#f1c40f" : "#ff79c6";
+          } else if (e.species === "켈렌불라레") {
+            ctx.fillStyle = e.isBaby ? "#74b9ff" : "#a29bfe";
+          } else {
+            ctx.fillStyle = "#ffffff";
+          }
+          ctx.fillText(`${e.type}${e.isResting ? ' (휴식)' : ''}`, screenX - 30, screenY - e.height / 2 - 18);
         }
       });
 
