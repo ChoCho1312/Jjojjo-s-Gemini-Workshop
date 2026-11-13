@@ -329,7 +329,7 @@
         </div>
         <div class="guide-row">
           <span class="guide-badge">사냥·공격</span>
-          <span><b>켈렌불라레와 작은 동물</b>은 부딪혀서 먹고, 큰 공룡은 <b>스페이스바(발톱 공격)</b>로 물리쳐요.</span>
+          <span>작은 동물은 <b>부딪혀서 먹고</b>, <b>켈렌불라레</b>와 큰 공룡은 <b>스페이스바(발톱 공격)</b>로 잡아서 먹어요.</span>
         </div>
         <div class="guide-row">
           <span class="guide-badge">숨쉬기·둥지</span>
@@ -491,22 +491,27 @@
           e.x += Math.cos(player.angle) * 35;
           e.y += Math.sin(player.angle) * 35;
 
-          if (!e.isTarget) {
+          if (e.species === "켈렌불라레") {
+            e.fleeUntil = Date.now() + 4000; // 공격당하면 4초간 도망
+          } else if (!e.isTarget) {
             e.chaseState = "CHASING";
             e.chaseTimer = Date.now();
           }
 
           if (e.hp <= 0) {
             if (e.species === "켈렌불라레") {
+              // 공격으로 사냥 성공 시 포식(체력·산소·점수 회복)
               score += e.isBaby ? 2 : 4;
+              playerHp = Math.min(MAX_HP, playerHp + (e.isBaby ? 20 : 35));
+              playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 30);
+            } else if (e.isTarget) {
+              score += 1;
+              playerHp = Math.min(MAX_HP, playerHp + 15);
+              playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 25);
             } else {
-              score += e.isTarget ? 1 : 5;
+              score += 5;
             }
             scoreText.innerText = score;
-            if (e.isTarget) {
-              playerHp = Math.min(MAX_HP, playerHp + 20);
-              playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 25);
-            }
             entities.splice(i, 1);
           }
         }
@@ -547,7 +552,6 @@
       spawnHaastEagleFemale();
       spawnHaastEagleBaby(Math.PI);
 
-      // 초기 켈렌불라레 배치 (성체와 새끼가 다양한 나이대로 시작하도록 설정)
       spawnKelenvolare("♀", false, 1280, 1400, 60000);
       spawnKelenvolare("♂", false, 1360, 1440, 75000);
       spawnKelenvolare("♀", true, 1320, 1480, 0);
@@ -566,7 +570,6 @@
       if (spawnIntervalId) clearInterval(spawnIntervalId);
       spawnIntervalId = setInterval(() => {
         if (isGameRunning && entities.length < 55) spawnEntity(false);
-        // 켈렌불라레가 수명으로 모두 사라져 멸종하지 않도록 최소 개체수 유지
         const kelCount = entities.filter(e => e.species === "켈렌불라레").length;
         if (isGameRunning && kelCount < 4) {
           spawnKelenvolare(Math.random() < 0.5 ? "♀" : "♂", false, null, null, 46000);
@@ -643,12 +646,13 @@
         gender: gender,
         isBaby: isBaby,
         isOld: false,
-        birthTime: Date.now() - initialAgeMs, // 태어난 시각 (3분 후 자연사)
+        birthTime: Date.now() - initialAgeMs,
         lastBreedTime: 0,
-        isTarget: true,
+        fleeUntil: 0,
+        isTarget: false, // 닿으면 바로 먹히는 일반 먹잇감과 분리 (공격으로 사냥)
         angle: Math.random() * Math.PI * 2,
         chaseState: "IDLE", chaseTimer: 0, isResting: false,
-        hp: isBaby ? 30 : 75, maxHp: isBaby ? 30 : 75,
+        hp: isBaby ? 35 : 80, maxHp: isBaby ? 35 : 80,
         clackTimer: 0
       });
     }
@@ -802,28 +806,25 @@
       for (let i = entities.length - 1; i >= 0; i--) {
         const e = entities[i];
 
-        // 🦕 켈렌불라레 3분(180초) 수명 주기 처리
+        // 켈렌불라레 3분(180초) 수명 주기 처리
         if (e.species === "켈렌불라레") {
           const age = now - e.birthTime;
 
-          // 180초(3분) 도달 시 수명 다해 자연사
           if (age >= KELENVOLARE_LIFESPAN) {
             entities.splice(i, 1);
             continue;
           }
 
-          // 45초 경과 시 새끼에서 성체로 성장
           if (e.isBaby && age >= 45000) {
             e.isBaby = false;
             e.width = 120;
             e.height = 85;
             e.speed = 2.9;
-            e.hp = 75;
-            e.maxHp = 75;
+            e.hp = 80;
+            e.maxHp = 80;
             e.type = `켈렌불라레(${e.gender})`;
           }
 
-          // 160초 경과 시 노년기 진입 (속도 약간 감소 및 노화 표시)
           if (!e.isBaby && !e.isOld && age >= 160000) {
             e.isOld = true;
             e.speed = 2.1;
@@ -872,7 +873,7 @@
 
         // 켈렌불라레 번식
         let isCourting = false;
-        if (e.species === "켈렌불라레" && !e.isBaby) {
+        if (e.species === "켈렌불라레" && !e.isBaby && now > (e.fleeUntil || 0)) {
           for (let j = 0; j < entities.length; j++) {
             const partner = entities[j];
             if (partner.species === "켈렌불라레" && partner.gender !== e.gender && !partner.isBaby) {
@@ -899,8 +900,22 @@
         const prevX = e.x;
         const prevY = e.y;
 
-        // 포식자 근접 추격 AI
-        if (!e.isTarget && e.species !== "하스트수리") {
+        if (e.species === "켈렌불라레") {
+          // 공격당했을 때만 도망치고 평소에는 평화롭게 이동
+          if (now < (e.fleeUntil || 0)) {
+            e.chaseState = "FLEEING";
+            e.angle = Math.atan2(-dy, -dx);
+            e.x += Math.cos(e.angle) * (e.speed * 1.4);
+            e.y += Math.sin(e.angle) * (e.speed * 1.4);
+          } else {
+            e.chaseState = "IDLE";
+            const currentSpeed = isCourting ? e.speed * 0.5 : e.speed;
+            if (!isCourting) e.angle += (Math.random() - 0.5) * (Math.PI / 45);
+            e.x += Math.cos(e.angle) * currentSpeed;
+            e.y += Math.sin(e.angle) * currentSpeed;
+          }
+        } else if (!e.isTarget && e.species !== "하스트수리") {
+          // 포식자 근접 추격 AI
           if (distance < 420) {
             if (e.chaseState === "IDLE") {
               e.chaseState = "CHASING";
@@ -942,8 +957,8 @@
             e.chaseState = "IDLE";
           }
 
-          const currentSpeed = e.chaseState === "FLEEING" ? e.speed * 1.35 : (isCourting ? e.speed * 0.5 : e.speed);
-          if (e.chaseState === "IDLE" && !isCourting) e.angle += (Math.random() - 0.5) * (Math.PI / 45);
+          const currentSpeed = e.chaseState === "FLEEING" ? e.speed * 1.35 : e.speed;
+          if (e.chaseState === "IDLE") e.angle += (Math.random() - 0.5) * (Math.PI / 45);
 
           e.x += Math.cos(e.angle) * currentSpeed;
           e.y += Math.sin(e.angle) * currentSpeed;
@@ -970,20 +985,15 @@
           }
         }
 
+        // 플레이어와 단순 접촉 시 판정 (켈렌불라레는 닿아도 먹히지 않고 공격도 하지 않음)
         if (checkCollision(player, e)) {
           if (e.isTarget) {
-            if (e.species === "켈렌불라레") {
-              score += e.isBaby ? 2 : 4;
-              playerHp = Math.min(MAX_HP, playerHp + (e.isBaby ? 20 : 35));
-              playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 30);
-            } else {
-              score += 1;
-              playerHp = Math.min(MAX_HP, playerHp + 15);
-              playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 25);
-            }
+            score += 1;
+            playerHp = Math.min(MAX_HP, playerHp + 15);
+            playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 25);
             scoreText.innerText = score;
             entities.splice(i, 1);
-          } else if (e.species !== "하스트수리") {
+          } else if (e.species !== "하스트수리" && e.species !== "켈렌불라레") {
             if (player.hitCooldown <= 0 && player.clawTimer <= 0) {
               playerHp = Math.max(0, playerHp - 15);
               player.hitCooldown = 30;
@@ -1289,7 +1299,6 @@
         return;
       }
 
-      // 노년기일 경우 전체적으로 깃털과 뿔 색이 바랜 느낌으로 표현
       ctx.fillStyle = isOld ? "#59504c" : "#2c221e";
       ctx.beginPath();
       ctx.moveTo(-w * 0.25, -h * 0.12); ctx.lineTo(-w * 0.48, 0); ctx.lineTo(-w * 0.25, h * 0.12);
@@ -1469,7 +1478,7 @@
           if (e.species !== "하스트수리") {
             ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
             ctx.fillRect(screenX - 24, screenY - e.height / 2 - 14, 48, 4);
-            ctx.fillStyle = e.isTarget ? "#2ecc71" : "#ff4757";
+            ctx.fillStyle = (e.isTarget || e.species === "켈렌불라레") ? "#2ecc71" : "#ff4757";
             ctx.fillRect(screenX - 24, screenY - e.height / 2 - 14, (e.hp / e.maxHp) * 48, 4);
           }
 
