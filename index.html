@@ -1,4 +1,4 @@
-]<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -30,7 +30,6 @@
       padding: 12px;
     }
 
-    /* 전체 게임 뷰포트 (깔끔한 16:9 비율 유지) */
     #game-wrapper {
       position: relative;
       width: 100%;
@@ -50,7 +49,6 @@
       display: block;
     }
 
-    /* 상단 HUD (현실적인 반투명 다크 글래스 스타일) */
     #hud-top {
       position: absolute;
       top: 14px;
@@ -138,7 +136,6 @@
       background: rgba(255, 255, 255, 0.25);
     }
 
-    /* 우측 하단 반투명 조작 패드 (모바일/마우스 겸용) */
     #touch-controls {
       position: absolute;
       bottom: 16px;
@@ -208,7 +205,6 @@
       transform: scale(0.94);
     }
 
-    /* 초간단 시작 & 설명 오버레이 */
     #start-overlay {
       position: absolute;
       inset: 0;
@@ -292,7 +288,6 @@
   <div id="game-wrapper">
     <canvas id="gameCanvas" width="1024" height="576"></canvas>
 
-    <!-- 상단 깔끔한 HUD -->
     <div id="hud-top">
       <div class="hud-group">
         <div class="stat-item">
@@ -313,7 +308,6 @@
       </div>
     </div>
 
-    <!-- 우측 하단 반투명 조작 버튼 -->
     <div id="touch-controls">
       <div class="dpad">
         <div class="ctrl-btn" id="btn-up">W</div>
@@ -324,7 +318,6 @@
       <div id="btn-attack">🦅<br>발톱 공격</div>
     </div>
 
-    <!-- 초1도 이해하는 3줄 설명 오버레이 -->
     <div id="start-overlay">
       <h1 id="overlay-title">🦅 하스트수리의 삶</h1>
       <p class="subtitle">하늘의 제왕 하스트수리가 되어 살아남으세요</p>
@@ -336,7 +329,7 @@
         </div>
         <div class="guide-row">
           <span class="guide-badge">사냥·공격</span>
-          <span>작은 동물은 <b>부딪혀서 먹고</b>, 큰 공룡은 <b>스페이스바(발톱 공격)</b>로 물리쳐요.</span>
+          <span><b>켈렌불라레와 작은 동물</b>은 부딪혀서 먹고, 큰 공룡은 <b>스페이스바(발톱 공격)</b>로 물리쳐요.</span>
         </div>
         <div class="guide-row">
           <span class="guide-badge">숨쉬기·둥지</span>
@@ -372,6 +365,8 @@
     const RIVER_END = 2450;
     const OCEAN_START = 3400;
 
+    const KELENVOLARE_LIFESPAN = 180000; // 켈렌불라레 수명: 3분 (180,000ms)
+
     const camera = { x: 0, y: 0, width: canvas.width, height: canvas.height };
 
     let score = 0;
@@ -392,7 +387,7 @@
     };
 
     const keys = {};
-    let clawEffects = []; // 발톱 할퀴기 이펙트 배열
+    let clawEffects = [];
     let entities = [];
     let nests = [];
     let hasBabySpawned = false;
@@ -464,19 +459,17 @@
       return isOceanArea(px, py, width) || isRiverArea(px, py, width);
     }
 
-    // 🦅 독 발사 대신 맹금류다운 발톱 할퀴기 돌진 공격!
     function triggerClawAttack() {
       if (player.clawCooldown > 0) return;
 
-      player.clawTimer = 14;    // 14프레임 동안 돌진 및 무적 판정
-      player.clawCooldown = 28; // 약 0.45초 쿨타임
+      player.clawTimer = 14;
+      player.clawCooldown = 28;
 
       const pCenterX = player.x + player.width / 2;
       const pCenterY = player.y + player.height / 2;
       const hitX = pCenterX + Math.cos(player.angle) * 55;
       const hitY = pCenterY + Math.sin(player.angle) * 55;
 
-      // 시각적 발톱 할퀴기 궤적 추가
       clawEffects.push({
         x: hitX,
         y: hitY,
@@ -485,10 +478,9 @@
         maxLife: 14
       });
 
-      // 전방 범위 내 포식자 타격
       for (let i = entities.length - 1; i >= 0; i--) {
         const e = entities[i];
-        if (e.species === "하스트수리" || e.species === "켈렌불라레") continue;
+        if (e.species === "하스트수리") continue;
 
         const eCenterX = e.x + e.width / 2;
         const eCenterY = e.y + e.height / 2;
@@ -496,7 +488,6 @@
 
         if (dist < Math.max(e.width, e.height) * 0.55 + 50) {
           e.hp -= 45;
-          // 넉백 효과
           e.x += Math.cos(player.angle) * 35;
           e.y += Math.sin(player.angle) * 35;
 
@@ -506,10 +497,14 @@
           }
 
           if (e.hp <= 0) {
-            score += e.isTarget ? 1 : 5;
+            if (e.species === "켈렌불라레") {
+              score += e.isBaby ? 2 : 4;
+            } else {
+              score += e.isTarget ? 1 : 5;
+            }
             scoreText.innerText = score;
             if (e.isTarget) {
-              playerHp = Math.min(MAX_HP, playerHp + 15);
+              playerHp = Math.min(MAX_HP, playerHp + 20);
               playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 25);
             }
             entities.splice(i, 1);
@@ -550,13 +545,17 @@
 
       initNests();
       spawnHaastEagleFemale();
+      spawnHaastEagleBaby(Math.PI);
 
-      spawnKelenvolare("♀", false, 1320, 1420);
-      spawnKelenvolare("♂", false, 1390, 1450);
+      // 초기 켈렌불라레 배치 (성체와 새끼가 다양한 나이대로 시작하도록 설정)
+      spawnKelenvolare("♀", false, 1280, 1400, 60000);
+      spawnKelenvolare("♂", false, 1360, 1440, 75000);
+      spawnKelenvolare("♀", true, 1320, 1480, 0);
 
       for (let i = 0; i < 3; i++) {
-        spawnKelenvolare("♀");
-        spawnKelenvolare("♂");
+        spawnKelenvolare("♀", false, null, null, 50000 + Math.random() * 50000);
+        spawnKelenvolare("♂", false, null, null, 50000 + Math.random() * 50000);
+        spawnKelenvolare(Math.random() < 0.5 ? "♀" : "♂", true, null, null, 0);
       }
 
       spawnSpecificPredator("크리욜로포사우르스", 1780, 1450);
@@ -567,6 +566,11 @@
       if (spawnIntervalId) clearInterval(spawnIntervalId);
       spawnIntervalId = setInterval(() => {
         if (isGameRunning && entities.length < 55) spawnEntity(false);
+        // 켈렌불라레가 수명으로 모두 사라져 멸종하지 않도록 최소 개체수 유지
+        const kelCount = entities.filter(e => e.species === "켈렌불라레").length;
+        if (isGameRunning && kelCount < 4) {
+          spawnKelenvolare(Math.random() < 0.5 ? "♀" : "♂", false, null, null, 46000);
+        }
       }, 1200);
     }
 
@@ -593,13 +597,14 @@
       });
     }
 
-    function spawnHaastEagleBaby() {
+    function spawnHaastEagleBaby(startOrbit = Math.PI) {
       entities.push({
-        x: player.x + 75 * x, y: player.y + 75 * x,
+        x: player.x + Math.cos(startOrbit) * 75,
+        y: player.y + Math.sin(startOrbit) * 75,
         baseSpeed: 6.5, speed: 6.5,
-        width: 48, height: 38, type: "하스트수리(새끼)",
+        width: 52, height: 42, type: "하스트수리(새끼)",
         species: "하스트수리", gender: "👶", isBaby: true, isTarget: false,
-        angle: 0, orbitAngle: Math.PI, radiusMultiplier: 75, orbitSpeed: 0.04,
+        angle: 0, orbitAngle: startOrbit, radiusMultiplier: 75, orbitSpeed: 0.04,
         hp: 9999, maxHp: 9999
       });
     }
@@ -612,12 +617,12 @@
       }
     }
 
-    function spawnKelenvolare(gender, isBaby = false, customX = null, customY = null) {
+    function spawnKelenvolare(gender, isBaby = false, customX = null, customY = null, initialAgeMs = 0) {
       const kelCount = entities.filter(e => e.species === "켈렌불라레").length;
-      if (kelCount >= 24) return;
+      if (kelCount >= 26) return;
 
-      const w = isBaby ? 62 : 120;
-      const h = isBaby ? 46 : 85;
+      const w = isBaby ? 64 : 120;
+      const h = isBaby ? 48 : 85;
 
       let spawnX = customX !== null ? customX + (Math.random() * 60 - 30) : getLandSpawnX(w);
       let spawnY = customY !== null ? customY + (Math.random() * 60 - 30) : Math.random() * (MAP_HEIGHT - 400) + 200;
@@ -629,20 +634,21 @@
       entities.push({
         x: Math.max(50, Math.min(MAP_WIDTH - w - 50, spawnX)),
         y: Math.max(50, Math.min(MAP_HEIGHT - h - 50, spawnY)),
-        baseSpeed: isBaby ? 2.2 : 3.2,
-        speed: isBaby ? 2.2 : 3.2,
+        baseSpeed: isBaby ? 2.1 : 2.9,
+        speed: isBaby ? 2.1 : 2.9,
         width: w,
         height: h,
         type: `켈렌불라레(${gender})${isBaby ? ' 새끼' : ''}`,
         species: "켈렌불라레",
         gender: gender,
         isBaby: isBaby,
-        birthTime: Date.now(),
+        isOld: false,
+        birthTime: Date.now() - initialAgeMs, // 태어난 시각 (3분 후 자연사)
         lastBreedTime: 0,
-        isTarget: false,
+        isTarget: true,
         angle: Math.random() * Math.PI * 2,
         chaseState: "IDLE", chaseTimer: 0, isResting: false,
-        hp: isBaby ? 60 : 160, maxHp: isBaby ? 60 : 160,
+        hp: isBaby ? 30 : 75, maxHp: isBaby ? 30 : 75,
         clackTimer: 0
       });
     }
@@ -691,7 +697,6 @@
     function updatePlayer() {
       let dx = 0, dy = 0;
 
-      // WASD + 화살표 키 동시 지원
       if (keys["KeyW"] || keys["ArrowUp"]) dy -= 1;
       if (keys["KeyS"] || keys["ArrowDown"]) dy += 1;
       if (keys["KeyA"] || keys["ArrowLeft"]) dx -= 1;
@@ -704,7 +709,6 @@
         player.angle = Math.atan2(dy, dx);
       }
 
-      // 발톱 돌진 공격 중일 때는 바라보는 방향으로 빠르게 가속
       const currentSpeed = player.clawTimer > 0 ? player.speed * 1.9 : player.speed;
       if (player.clawTimer > 0) {
         player.x += Math.cos(player.angle) * currentSpeed;
@@ -756,7 +760,7 @@
         nests.forEach((nest) => {
           if (checkCollision(player, nest)) {
             hasBabySpawned = true;
-            spawnHaastEagleBaby();
+            spawnHaastEagleBaby(Math.PI / 2);
             score += 10;
             scoreText.innerText = score;
             playerHp = Math.min(MAX_HP, playerHp + 30);
@@ -765,7 +769,6 @@
         });
       }
 
-      // 물 위에서는 산소 감소, 숲에서는 산소 회복
       const playerCenterX = player.x + player.width / 2;
       const playerCenterY = player.y + player.height / 2;
       const playerInWater = isWaterArea(playerCenterX, playerCenterY, 0);
@@ -791,23 +794,40 @@
 
       updateStatusBars();
 
-      // 발톱 이펙트 수명 감소
       for (let cIdx = clawEffects.length - 1; cIdx >= 0; cIdx--) {
         clawEffects[cIdx].life--;
         if (clawEffects[cIdx].life <= 0) clawEffects.splice(cIdx, 1);
       }
 
-      // 생물 AI 및 충돌
       for (let i = entities.length - 1; i >= 0; i--) {
         const e = entities[i];
 
-        if (e.species === "켈렌불라레" && e.isBaby) {
-          if (now - e.birthTime >= 30000) {
+        // 🦕 켈렌불라레 3분(180초) 수명 주기 처리
+        if (e.species === "켈렌불라레") {
+          const age = now - e.birthTime;
+
+          // 180초(3분) 도달 시 수명 다해 자연사
+          if (age >= KELENVOLARE_LIFESPAN) {
+            entities.splice(i, 1);
+            continue;
+          }
+
+          // 45초 경과 시 새끼에서 성체로 성장
+          if (e.isBaby && age >= 45000) {
             e.isBaby = false;
             e.width = 120;
             e.height = 85;
-            e.speed = 3.2;
+            e.speed = 2.9;
+            e.hp = 75;
+            e.maxHp = 75;
             e.type = `켈렌불라레(${e.gender})`;
+          }
+
+          // 160초 경과 시 노년기 진입 (속도 약간 감소 및 노화 표시)
+          if (!e.isBaby && !e.isOld && age >= 160000) {
+            e.isOld = true;
+            e.speed = 2.1;
+            e.type = `켈렌불라레(${e.gender}) 노화`;
           }
         }
 
@@ -818,7 +838,7 @@
         const dy = playerCenterY - eCenterY;
         const distance = Math.hypot(dx, dy);
 
-        // 아군 하스트수리
+        // 아군 하스트수리(암컷 및 새끼들)
         if (e.species === "하스트수리" && e !== player) {
           e.orbitAngle = (e.orbitAngle || 0) + (e.orbitSpeed || 0.03);
 
@@ -857,17 +877,17 @@
             const partner = entities[j];
             if (partner.species === "켈렌불라레" && partner.gender !== e.gender && !partner.isBaby) {
               const kDist = Math.hypot(partner.x - e.x, partner.y - e.y);
-              if (kDist < 180 && (now - (e.lastBreedTime || 0) > 15000)) {
+              if (kDist < 220 && (now - (e.lastBreedTime || 0) > 10000)) {
                 isCourting = true;
                 e.angle = Math.atan2(partner.y - e.y, partner.x - e.x);
                 e.clackTimer = (e.clackTimer || 0) + 1;
-                if (e.clackTimer > 150) {
+                if (e.clackTimer > 90) {
                   e.clackTimer = 0;
                   e.lastBreedTime = now;
                   partner.lastBreedTime = now;
                   if (e.gender === "♀") {
                     const babyGender = Math.random() < 0.5 ? "♀" : "♂";
-                    spawnKelenvolare(babyGender, true, e.x, e.y);
+                    spawnKelenvolare(babyGender, true, e.x, e.y, 0);
                   }
                 }
                 break;
@@ -879,8 +899,8 @@
         const prevX = e.x;
         const prevY = e.y;
 
-        // 포식자 근접 추격 AI (독 발사 없이 정정당당하게 몸통 추격)
-        if (!e.isTarget && e.species !== "하스트수리" && e.species !== "켈렌불라레") {
+        // 포식자 근접 추격 AI
+        if (!e.isTarget && e.species !== "하스트수리") {
           if (distance < 420) {
             if (e.chaseState === "IDLE") {
               e.chaseState = "CHASING";
@@ -914,12 +934,15 @@
             e.x += Math.cos(e.angle) * e.speed;
             e.y += Math.sin(e.angle) * e.speed;
           }
-        } else if (e.isTarget || e.species === "켈렌불라레") {
-          if (distance < 150 && e.isTarget) {
-            e.chaseState = "FLEEING"; e.angle = Math.atan2(-dy, -dx);
-          } else e.chaseState = "IDLE";
+        } else if (e.isTarget) {
+          if (distance < 160) {
+            e.chaseState = "FLEEING";
+            e.angle = Math.atan2(-dy, -dx);
+          } else {
+            e.chaseState = "IDLE";
+          }
 
-          const currentSpeed = e.chaseState === "FLEEING" ? e.speed * 1.4 : (isCourting ? e.speed * 0.5 : e.speed);
+          const currentSpeed = e.chaseState === "FLEEING" ? e.speed * 1.35 : (isCourting ? e.speed * 0.5 : e.speed);
           if (e.chaseState === "IDLE" && !isCourting) e.angle += (Math.random() - 0.5) * (Math.PI / 45);
 
           e.x += Math.cos(e.angle) * currentSpeed;
@@ -947,15 +970,20 @@
           }
         }
 
-        // 플레이어와 충돌 판정
         if (checkCollision(player, e)) {
           if (e.isTarget) {
-            score += 1; scoreText.innerText = score;
-            playerHp = Math.min(MAX_HP, playerHp + 15);
-            playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 25);
+            if (e.species === "켈렌불라레") {
+              score += e.isBaby ? 2 : 4;
+              playerHp = Math.min(MAX_HP, playerHp + (e.isBaby ? 20 : 35));
+              playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 30);
+            } else {
+              score += 1;
+              playerHp = Math.min(MAX_HP, playerHp + 15);
+              playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 25);
+            }
+            scoreText.innerText = score;
             entities.splice(i, 1);
-          } else if (e.species !== "하스트수리" && e.species !== "켈렌불라레") {
-            // 발톱 돌진 중이 아닐 때만 피해 입음
+          } else if (e.species !== "하스트수리") {
             if (player.hitCooldown <= 0 && player.clawTimer <= 0) {
               playerHp = Math.max(0, playerHp - 15);
               player.hitCooldown = 30;
@@ -1024,8 +1052,45 @@
     }
 
     function drawHaastEagle(w, h, isBaby = false) {
-      ctx.fillStyle = isBaby ? "#8d6e63" : "#3e2723";
-      
+      if (isBaby) {
+        ctx.fillStyle = "#dfe6e9";
+        ctx.beginPath();
+        ctx.ellipse(-w * 0.05, -h * 0.34, w * 0.24, h * 0.16, -0.25, 0, Math.PI * 2);
+        ctx.ellipse(-w * 0.05, h * 0.34, w * 0.24, h * 0.16, 0.25, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#b2bec3";
+        ctx.beginPath();
+        ctx.arc(-w * 0.32, 0, h * 0.14, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(-w * 0.02, 0, h * 0.34, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#f5f6fa";
+        ctx.beginPath();
+        ctx.arc(w * 0.24, 0, h * 0.26, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#1e272e";
+        ctx.beginPath();
+        ctx.arc(w * 0.30, -h * 0.11, 2.8, 0, Math.PI * 2);
+        ctx.arc(w * 0.30, h * 0.11, 2.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffeaa7";
+        ctx.beginPath();
+        ctx.moveTo(w * 0.42, -h * 0.09);
+        ctx.lineTo(w * 0.56, 0);
+        ctx.lineTo(w * 0.42, h * 0.09);
+        ctx.closePath();
+        ctx.fill();
+        return;
+      }
+
+      ctx.fillStyle = "#3e2723";
       ctx.beginPath();
       ctx.moveTo(w * 0.05, -h * 0.1);
       ctx.quadraticCurveTo(-w * 0.1, -h * 0.55, -w * 0.38, -h * 0.45);
@@ -1043,10 +1108,10 @@
       ctx.moveTo(-w * 0.25, -h * 0.1); ctx.lineTo(-w * 0.45, 0); ctx.lineTo(-w * 0.25, h * 0.1);
       ctx.closePath(); ctx.fill();
 
-      ctx.fillStyle = isBaby ? "#a1887f" : "#4e342e";
+      ctx.fillStyle = "#4e342e";
       ctx.beginPath(); ctx.ellipse(-w * 0.05, 0, w * 0.35, h * 0.24, 0, 0, Math.PI * 2); ctx.fill();
 
-      ctx.fillStyle = isBaby ? "#d7ccc8" : "#795548";
+      ctx.fillStyle = "#795548";
       ctx.beginPath(); ctx.arc(w * 0.22, 0, h * 0.2, 0, Math.PI * 2); ctx.fill();
 
       ctx.fillStyle = "#f39c12";
@@ -1186,16 +1251,56 @@
       ctx.stroke();
     }
 
-    function drawKelenvolare(w, h, clackTimer = 0, isBaby = false) {
-      ctx.fillStyle = isBaby ? "#5d4e46" : "#2c221e";
+    function drawKelenvolare(w, h, clackTimer = 0, isBaby = false, isOld = false) {
+      if (isBaby) {
+        ctx.fillStyle = "#d2b48c";
+        ctx.beginPath();
+        ctx.arc(-w * 0.34, 0, h * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#f5deb3";
+        ctx.beginPath();
+        ctx.ellipse(-w * 0.04, 0, w * 0.32, h * 0.32, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#deb887";
+        ctx.beginPath();
+        ctx.ellipse(-w * 0.08, 0, w * 0.16, h * 0.14, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#faebd7";
+        ctx.beginPath();
+        ctx.arc(w * 0.22, 0, h * 0.24, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#2c221e";
+        ctx.beginPath();
+        ctx.arc(w * 0.27, -h * 0.11, 2.5, 0, Math.PI * 2);
+        ctx.arc(w * 0.27, h * 0.11, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#f39c12";
+        ctx.beginPath();
+        ctx.moveTo(w * 0.38, -h * 0.09);
+        ctx.lineTo(w * 0.54, 0);
+        ctx.lineTo(w * 0.38, h * 0.09);
+        ctx.closePath();
+        ctx.fill();
+        return;
+      }
+
+      // 노년기일 경우 전체적으로 깃털과 뿔 색이 바랜 느낌으로 표현
+      ctx.fillStyle = isOld ? "#59504c" : "#2c221e";
       ctx.beginPath();
       ctx.moveTo(-w * 0.25, -h * 0.12); ctx.lineTo(-w * 0.48, 0); ctx.lineTo(-w * 0.25, h * 0.12);
       ctx.closePath(); ctx.fill();
 
-      ctx.fillStyle = isBaby ? "#7f6c61" : "#4a3b32";
+      ctx.fillStyle = isOld ? "#7c7068" : "#4a3b32";
       ctx.beginPath(); ctx.ellipse(-w * 0.05, 0, w * 0.32, h * 0.25, 0, 0, Math.PI * 2); ctx.fill();
 
-      ctx.fillStyle = isBaby ? "#b87333" : "#8b4513"; ctx.strokeStyle = "#2b1810"; ctx.lineWidth = 1.8;
+      ctx.fillStyle = isOld ? "#a68a73" : "#8b4513";
+      ctx.strokeStyle = isOld ? "#574a42" : "#2b1810";
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
       ctx.moveTo(-w * 0.08, -h * 0.1);
       ctx.quadraticCurveTo(-w * 0.48, -h * 0.9, w * 0.15, -h * 0.7);
@@ -1208,11 +1313,11 @@
       ctx.quadraticCurveTo(-w * 0.05, h * 0.35, -w * 0.08, h * 0.1);
       ctx.closePath(); ctx.fill(); ctx.stroke();
 
-      ctx.fillStyle = isBaby ? "#59483f" : "#362a24";
+      ctx.fillStyle = isOld ? "#6b5f58" : "#362a24";
       ctx.beginPath(); ctx.ellipse(w * 0.18, 0, w * 0.15, h * 0.14, 0, 0, Math.PI * 2); ctx.fill();
 
       const offset = (clackTimer % 4 > 2) ? 4 : 0;
-      ctx.fillStyle = isBaby ? "#f9e79f" : "#d4c585";
+      ctx.fillStyle = isOld ? "#e0d8b8" : "#d4c585";
       ctx.beginPath();
       ctx.moveTo(w * 0.26, -h * 0.1 - offset); ctx.lineTo(w * 0.55, 0); ctx.lineTo(w * 0.26, h * 0.1 + offset);
       ctx.closePath(); ctx.fill();
@@ -1316,7 +1421,6 @@
       drawMapBackground();
       drawNests();
 
-      // 발톱 할퀴기 궤적 이펙트 그리기
       clawEffects.forEach((c) => {
         const alpha = c.life / c.maxLife;
         ctx.save();
@@ -1353,7 +1457,7 @@
           ctx.rotate(e.angle);
 
           if (e.species === "하스트수리") drawHaastEagle(e.width, e.height, e.isBaby);
-          else if (e.species === "켈렌불라레") drawKelenvolare(e.width, e.height, e.clackTimer, e.isBaby);
+          else if (e.species === "켈렌불라레") drawKelenvolare(e.width, e.height, e.clackTimer, e.isBaby, e.isOld);
           else if (e.type === "크리욜로포사우르스") drawCryolophosaurus(e.width, e.height, e.chaseState);
           else if (e.type === "하체고프테릭스") drawHatzegopteryx(e.width, e.height, e.chaseState);
           else if (e.type === "로드리게스솔리테어") drawSolitaire(e.width, e.height);
@@ -1362,7 +1466,7 @@
 
           ctx.restore();
 
-          if (e.species !== "하스트수리" && e.species !== "켈렌불라레") {
+          if (e.species !== "하스트수리") {
             ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
             ctx.fillRect(screenX - 24, screenY - e.height / 2 - 14, 48, 4);
             ctx.fillStyle = e.isTarget ? "#2ecc71" : "#ff4757";
@@ -1371,9 +1475,9 @@
 
           ctx.font = "600 12px sans-serif";
           if (e.species === "하스트수리") {
-            ctx.fillStyle = e.isBaby ? "#f1c40f" : "#ff79c6";
+            ctx.fillStyle = e.isBaby ? "#ffeaa7" : "#ff79c6";
           } else if (e.species === "켈렌불라레") {
-            ctx.fillStyle = e.isBaby ? "#74b9ff" : "#a29bfe";
+            ctx.fillStyle = e.isBaby ? "#7bed9f" : (e.isOld ? "#ced6e0" : "#2ecc71");
           } else if (!e.isTarget) {
             ctx.fillStyle = e.chaseState === "CHASING" ? "#ff6b6b" : "#ffa502";
           } else {
