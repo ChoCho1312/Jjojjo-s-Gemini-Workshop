@@ -331,7 +331,7 @@
         </div>
         <div class="guide-row">
           <span class="guide-badge">투구게 일생</span>
-          <span><b>알(10초·무적) → 새끼(20초) → 성체(30초)</b>로 자라며 해조류를 먹고 모래톱에서 <b>알 20개</b>를 산란해요.</span>
+          <span><b>알(10초·무적) → 새끼(20초) → 성체(30초)</b>로 자라며 해조류를 먹고 넓은 모래톱에서 <b>알 20개</b>를 산란해요.</span>
         </div>
         <div class="guide-row">
           <span class="guide-badge">사냥·생태계</span>
@@ -365,13 +365,13 @@
 
     const RIVER_START = 1950;
     const RIVER_END = 2450;
+    const RIVER_SAND_WIDTH = 95;   // 강변 양옆 모래톱 가로 폭 확장
     const OCEAN_START = 3400;
-    const OCEAN_SAND_WIDTH = 135;
+    const OCEAN_SAND_WIDTH = 260;  // 바닷가 모래톱 가로 폭 대폭 확장 (260px)
 
     const KELENVOLARE_LIFESPAN = 180000;
     const HORSESHOE_LIFESPAN = 60000;
 
-    // 대형 포식자 최대 개체수 상한
     const MAX_CRYOLOPHOSAURUS = 3;
     const MAX_HATZEGOPTERYX = 3;
 
@@ -484,8 +484,8 @@
 
     function isSandbarArea(px, py, width = 0) {
       const center = px + width / 2;
-      const inWestRiverSand = (center >= RIVER_START - 45 && center <= RIVER_START + 15);
-      const inEastRiverSand = (center >= RIVER_END - 15 && center <= RIVER_END + 45);
+      const inWestRiverSand = (center >= RIVER_START - RIVER_SAND_WIDTH && center <= RIVER_START + 15);
+      const inEastRiverSand = (center >= RIVER_END - 15 && center <= RIVER_END + RIVER_SAND_WIDTH);
       const inOceanSand = (center >= OCEAN_START - OCEAN_SAND_WIDTH && center <= OCEAN_START + 25);
       return inWestRiverSand || inEastRiverSand || inOceanSand;
     }
@@ -514,14 +514,14 @@
       trees = [];
       for (let i = 0; i < 65; i++) {
         trees.push({
-          x: 90 + Math.random() * (RIVER_START - 220),
+          x: 90 + Math.random() * (RIVER_START - RIVER_SAND_WIDTH - 160),
           y: 120 + Math.random() * (MAP_HEIGHT - 200),
           scale: 0.8 + Math.random() * 0.55
         });
       }
-      for (let i = 0; i < 35; i++) {
+      for (let i = 0; i < 32; i++) {
         trees.push({
-          x: RIVER_END + 110 + Math.random() * (OCEAN_START - OCEAN_SAND_WIDTH - RIVER_END - 180),
+          x: RIVER_END + RIVER_SAND_WIDTH + 60 + Math.random() * (OCEAN_START - OCEAN_SAND_WIDTH - (RIVER_END + RIVER_SAND_WIDTH) - 120),
           y: 120 + Math.random() * (MAP_HEIGHT - 200),
           scale: 0.8 + Math.random() * 0.55
         });
@@ -597,7 +597,7 @@
         { id: 0, x: 600, y: 700, width: 70, height: 70, hasEgg: true, eggState: "FERTILIZED" },
         { id: 1, x: 1300, y: 1500, width: 70, height: 70, hasEgg: true, eggState: "FERTILIZED" },
         { id: 2, x: 900, y: 2500, width: 70, height: 70, hasEgg: true, eggState: "FERTILIZED" },
-        { id: 3, x: 2950, y: 900, width: 70, height: 70, hasEgg: true, eggState: "FERTILIZED" }
+        { id: 3, x: 2850, y: 900, width: 70, height: 70, hasEgg: true, eggState: "FERTILIZED" }
       ];
     }
 
@@ -622,8 +622,8 @@
 
       if (spawnX === null || spawnY === null) {
         const zone = Math.random();
-        if (zone < 0.55) {
-          spawnX = RIVER_START - 40 + Math.random() * (RIVER_END - RIVER_START + 80 - entityW);
+        if (zone < 0.5) {
+          spawnX = (RIVER_START - RIVER_SAND_WIDTH) + Math.random() * (RIVER_END - RIVER_START + RIVER_SAND_WIDTH * 2 - entityW);
         } else {
           spawnX = (OCEAN_START - OCEAN_SAND_WIDTH) + Math.random() * (OCEAN_SAND_WIDTH + 220);
         }
@@ -694,14 +694,14 @@
 
       // 🦀 투구게 초기 자연 개체: 딱 30마리만 생성
       const nearCrabCoords = [
-        [1920, 1420, "♂"],
-        [1935, 1480, "♀"],
-        [1918, 1550, "♂"],
-        [1940, 1620, "♀"],
-        [1922, 1690, "♂"],
-        [1945, 1750, "♀"],
-        [3320, 1520, "♂"],
-        [3350, 1640, "♀"]
+        [1890, 1420, "♂"],
+        [1915, 1480, "♀"],
+        [1885, 1550, "♂"],
+        [1920, 1620, "♀"],
+        [1895, 1690, "♂"],
+        [1925, 1750, "♀"],
+        [3240, 1520, "♂"],
+        [3280, 1640, "♀"]
       ];
       nearCrabCoords.forEach(([cx, cy, g]) => {
         spawnHorseshoeCrab(g, "ADULT", cx, cy, 37000);
@@ -724,11 +724,9 @@
         spawnKelenvolare(g, isB, null, null, isB ? 0 : (50000 + Math.random() * 45000));
       }
 
-      // 대형 포식자 초기 개체수 최소화 (각 1~2마리 수준으로 억제)
       spawnSpecificPredator("크리욜로포사우르스", 1180, 1350);
       spawnSpecificPredator("하체고프테릭스", 1120, 1820);
 
-      // 초기 일반 생물 22마리 생성 (포식자 최대 상한선 적용됨)
       for (let i = 0; i < 22; i++) spawnEntity(true);
 
       if (spawnIntervalId) clearInterval(spawnIntervalId);
@@ -781,9 +779,11 @@
 
     function getLandSpawnX(entityWidth) {
       if (Math.random() < 0.65) {
-        return Math.random() * (RIVER_START - entityWidth - 200) + 100;
+        return Math.random() * (RIVER_START - RIVER_SAND_WIDTH - entityWidth - 150) + 100;
       } else {
-        return Math.random() * (OCEAN_START - OCEAN_SAND_WIDTH - RIVER_END - entityWidth - 150) + RIVER_END + 70;
+        const minX = RIVER_END + RIVER_SAND_WIDTH + 40;
+        const maxX = OCEAN_START - OCEAN_SAND_WIDTH - entityWidth - 40;
+        return minX + Math.random() * Math.max(100, maxX - minX);
       }
     }
 
@@ -824,7 +824,6 @@
     function spawnEntity(inMap = false) {
       if (!isGameRunning) return;
 
-      // 현재 맵에 존재하는 크리욜로포사우르스와 하체고프테릭스 마릿수 집계
       let cryoCount = 0;
       let hatzegCount = 0;
       for (let i = 0; i < entities.length; i++) {
@@ -836,7 +835,6 @@
       let type = "로드리게스솔리테어";
       let isTarget = true;
 
-      // 스폰 확률을 크게 낮추고(각 4%, 3%), 최대 상한선(3마리) 초과 시 초식/어류로 대체
       if (rand < 4 && cryoCount < MAX_CRYOLOPHOSAURUS) {
         type = "크리욜로포사우르스";
         isTarget = false;
@@ -974,6 +972,9 @@
         if (playerOxygen <= 0) {
           playerHp = Math.max(0, playerHp - 0.35);
         }
+      } else if (isSandbarArea(playerCenterX, playerCenterY, 0)) {
+        terrainText.innerText = "🏖️ 모래톱";
+        playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 0.3);
       } else {
         terrainText.innerText = "🌲 숲";
         playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 0.3);
@@ -1072,7 +1073,7 @@
               spermZones.push({
                 x: e.x + e.width / 2,
                 y: e.y + e.height / 2,
-                radius: 65,
+                radius: 75,
                 createdAt: now
               });
             }
@@ -1089,12 +1090,12 @@
             for (let s = spermZones.length - 1; s >= 0; s--) {
               const sz = spermZones[s];
               const sDist = Math.hypot((e.x + e.width / 2) - sz.x, (e.y + e.height / 2) - sz.y);
-              if (sDist <= sz.radius + 40) {
+              if (sDist <= sz.radius + 45) {
                 e.lastLayTime = now;
                 spermZones.splice(s, 1);
                 for (let c = 0; c < 20; c++) {
                   const spreadAngle = (Math.PI * 2 * c) / 20 + Math.random() * 0.2;
-                  const spreadDist = 8 + Math.random() * 48;
+                  const spreadDist = 10 + Math.random() * 65;
                   spawnHorseshoeCrab(
                     Math.random() < 0.5 ? "♀" : "♂",
                     "EGG",
@@ -1235,7 +1236,7 @@
         // 암컷 투구게(성숙도 90 이상)의 수정액 탐색
         let seekSpermZone = null;
         if (e.species === "투구게" && e.gender === "♀" && e.stage === "ADULT" && (e.maturity || 0) >= 90 && spermZones.length > 0) {
-          let bestDist = 420;
+          let bestDist = 480;
           spermZones.forEach(sz => {
             const d = Math.hypot(sz.x - eCenterX, sz.y - eCenterY);
             if (d < bestDist) {
@@ -1248,7 +1249,7 @@
         // 배고픈 투구게(새끼/성체)가 해조류 먹이 탐색
         let seekSeaweed = null;
         if (e.species === "투구게" && e.stage !== "EGG" && (e.hunger || 0) < 85 && seaweeds.length > 0) {
-          let bestSwDist = 280;
+          let bestSwDist = 320;
           seaweeds.forEach(sw => {
             const d = Math.hypot(sw.x - eCenterX, sw.y - eCenterY);
             if (d < bestSwDist) {
@@ -1330,8 +1331,9 @@
             e.angle = Math.PI - e.angle + (Math.random() - 0.5) * 0.4;
           }
         } else if (e.species === "투구게") {
-          const nearWaterOrSand = isWaterArea(e.x - OCEAN_SAND_WIDTH, e.y, e.width + OCEAN_SAND_WIDTH + 45);
-          if (!nearWaterOrSand) {
+          // 넓어진 강변/해변 모래톱 전역에서 자유롭게 활동 가능
+          const onWaterOrSand = inWater || isSandbarArea(e.x, e.y, e.width);
+          if (!onWaterOrSand) {
             e.x = prevX;
             e.y = prevY;
             e.angle = Math.PI - e.angle + (Math.random() - 0.5) * 0.4;
@@ -1412,12 +1414,13 @@
         ctx.beginPath();
         ctx.arc(380 - camera.x, i - camera.y, 130, 0, Math.PI * 2);
         ctx.arc(1350 - camera.x, i + 90 - camera.y, 150, 0, Math.PI * 2);
-        ctx.arc(2880 - camera.x, i + 45 - camera.y, 140, 0, Math.PI * 2);
+        ctx.arc(2820 - camera.x, i + 45 - camera.y, 130, 0, Math.PI * 2);
         ctx.fill();
       }
 
+      // 넓어진 강변 모래톱 (양옆 95px씩)
       ctx.fillStyle = "#d9b97e";
-      ctx.fillRect(RIVER_START - 45 - camera.x, 0 - camera.y, (RIVER_END - RIVER_START) + 90, MAP_HEIGHT);
+      ctx.fillRect(RIVER_START - RIVER_SAND_WIDTH - camera.x, 0 - camera.y, (RIVER_END - RIVER_START) + RIVER_SAND_WIDTH * 2, MAP_HEIGHT);
 
       const riverGrad = ctx.createLinearGradient(RIVER_START - camera.x, 0, RIVER_END - camera.x, 0);
       riverGrad.addColorStop(0, "#1f6694");
@@ -1426,6 +1429,7 @@
       ctx.fillStyle = riverGrad;
       ctx.fillRect(RIVER_START - camera.x, 0 - camera.y, RIVER_END - RIVER_START, MAP_HEIGHT);
 
+      // 대폭 넓어진 바닷가 모래톱 (가로 260px)
       ctx.fillStyle = "#d9b97e";
       ctx.fillRect(OCEAN_START - OCEAN_SAND_WIDTH - camera.x, 0 - camera.y, OCEAN_SAND_WIDTH, MAP_HEIGHT);
     }
