@@ -331,7 +331,7 @@
         </div>
         <div class="guide-row">
           <span class="guide-badge">투구게 일생</span>
-          <span><b>알(10초·무적) → 새끼(20초) → 성체(30초)</b>로 자라며 물속 <b>해조류</b>를 먹고 모래톱에서 번식해요.</span>
+          <span><b>알(10초·무적) → 새끼(20초) → 성체(30초)</b>로 자라며 해조류를 먹고 모래톱에서 <b>알 20개</b>를 산란해요.</span>
         </div>
         <div class="guide-row">
           <span class="guide-badge">사냥·생태계</span>
@@ -366,6 +366,7 @@
     const RIVER_START = 1950;
     const RIVER_END = 2450;
     const OCEAN_START = 3400;
+    const OCEAN_SAND_WIDTH = 135; // 바닷가 모래톱 가로 너비 3배 확장 (기존 45 -> 135)
 
     const KELENVOLARE_LIFESPAN = 180000;
     const HORSESHOE_LIFESPAN = 60000;
@@ -406,7 +407,7 @@
     let nests = [];
     let trees = [];
     let spermZones = [];
-    let seaweeds = []; // 영원히 계속 생성되는 투구게 먹이(해조류) 오브젝트
+    let seaweeds = [];
     let hasBabySpawned = false;
 
     window.addEventListener("keydown", (e) => {
@@ -481,20 +482,18 @@
       const center = px + width / 2;
       const inWestRiverSand = (center >= RIVER_START - 45 && center <= RIVER_START + 15);
       const inEastRiverSand = (center >= RIVER_END - 15 && center <= RIVER_END + 45);
-      const inOceanSand = (center >= OCEAN_START - 45 && center <= OCEAN_START + 25);
+      // 3배 넓어진 바닷가 모래톱 범위 반영
+      const inOceanSand = (center >= OCEAN_START - OCEAN_SAND_WIDTH && center <= OCEAN_START + 25);
       return inWestRiverSand || inEastRiverSand || inOceanSand;
     }
 
-    // 🌿 해조류(먹이 오브젝트) 스폰 함수 - 강과 바다 물속/물가에서 영원히 계속 생성
     function spawnSeaweed(customX = null, customY = null) {
       let sx = customX;
       let sy = customY;
       if (sx === null || sy === null) {
         if (Math.random() < 0.65) {
-          // 강 내부 (X: 1965 ~ 2435)
           sx = RIVER_START + 15 + Math.random() * (RIVER_END - RIVER_START - 30);
         } else {
-          // 해안가 얕은 바다 (X: 3410 ~ 3800)
           sx = OCEAN_START + 10 + Math.random() * 390;
         }
         sy = 120 + Math.random() * (MAP_HEIGHT - 240);
@@ -517,9 +516,10 @@
           scale: 0.8 + Math.random() * 0.55
         });
       }
-      for (let i = 0; i < 38; i++) {
+      // 넓어진 바닷가 모래톱(OCEAN_START - OCEAN_SAND_WIDTH)을 침범하지 않도록 나무 배치 조정
+      for (let i = 0; i < 35; i++) {
         trees.push({
-          x: RIVER_END + 110 + Math.random() * (OCEAN_START - RIVER_END - 220),
+          x: RIVER_END + 110 + Math.random() * (OCEAN_START - OCEAN_SAND_WIDTH - RIVER_END - 180),
           y: 120 + Math.random() * (MAP_HEIGHT - 200),
           scale: 0.8 + Math.random() * 0.55
         });
@@ -620,10 +620,11 @@
 
       if (spawnX === null || spawnY === null) {
         const zone = Math.random();
-        if (zone < 0.65) {
+        if (zone < 0.55) {
           spawnX = RIVER_START - 40 + Math.random() * (RIVER_END - RIVER_START + 80 - entityW);
         } else {
-          spawnX = OCEAN_START - 40 + Math.random() * 240;
+          // 3배 넓어진 바닷가 모래톱과 연안 바다에 배치
+          spawnX = (OCEAN_START - OCEAN_SAND_WIDTH) + Math.random() * (OCEAN_SAND_WIDTH + 220);
         }
         spawnY = 160 + Math.random() * (MAP_HEIGHT - 320);
       }
@@ -686,7 +687,6 @@
       spawnHaastEagleFemale();
       spawnHaastEagleBaby(Math.PI);
 
-      // 🌿 초기 해조류 65개 생성 (강 & 해안가 주변에 풍부하게 배치, 이후 영원히 계속 생성됨)
       for (let i = 0; i < 65; i++) {
         spawnSeaweed();
       }
@@ -699,8 +699,8 @@
         [1940, 1620, "♀"],
         [1922, 1690, "♂"],
         [1945, 1750, "♀"],
-        [2440, 1520, "♂"],
-        [2450, 1640, "♀"]
+        [3320, 1520, "♂"],
+        [3350, 1640, "♀"]
       ];
       nearCrabCoords.forEach(([cx, cy, g]) => {
         spawnHorseshoeCrab(g, "ADULT", cx, cy, 37000);
@@ -732,13 +732,11 @@
       spawnIntervalId = setInterval(() => {
         if (!isGameRunning) return;
 
-        // 🌿 해조류 먹이 오브젝트는 영원히 계속 자라나도록 보충 (최대 80개까지 지속 생성)
         if (seaweeds.length < 80) {
           spawnSeaweed();
           spawnSeaweed();
         }
 
-        // 투구게(30마리 한정)와 켈렌불라레(10마리 한정)를 제외한 일반 생물만 보충
         if (entities.length < 75) spawnEntity(false);
       }, 900);
     }
@@ -782,7 +780,7 @@
       if (Math.random() < 0.65) {
         return Math.random() * (RIVER_START - entityWidth - 200) + 100;
       } else {
-        return Math.random() * (OCEAN_START - RIVER_END - entityWidth - 150) + RIVER_END + 70;
+        return Math.random() * (OCEAN_START - OCEAN_SAND_WIDTH - RIVER_END - entityWidth - 150) + RIVER_END + 70;
       }
     }
 
@@ -1034,7 +1032,7 @@
               const sw = seaweeds[swIdx];
               if (Math.hypot(crabCX - sw.x, crabCY - sw.y) < e.width * 0.48 + sw.radius) {
                 e.hunger = Math.min(100, (e.hunger || 0) + 30);
-                seaweeds.splice(swIdx, 1); // 먹힌 해조류 제거 (타이머에서 영원히 다시 자라남)
+                seaweeds.splice(swIdx, 1);
                 break;
               }
             }
@@ -1053,13 +1051,13 @@
               spermZones.push({
                 x: e.x + e.width / 2,
                 y: e.y + e.height / 2,
-                radius: 55,
+                radius: 65,
                 createdAt: now
               });
             }
           }
 
-          // 암컷 성체: 성숙도 90 이상 && 모래톱의 수정액 근처 도달 시 알을 낳아 후손을 이어줌
+          // 암컷 성체: 성숙도 90 이상 && 모래톱의 수정액 근처 도달 시 알 20개를 낳아 후손을 이어줌
           if (
             e.gender === "♀" &&
             e.stage === "ADULT" &&
@@ -1070,16 +1068,18 @@
             for (let s = spermZones.length - 1; s >= 0; s--) {
               const sz = spermZones[s];
               const sDist = Math.hypot((e.x + e.width / 2) - sz.x, (e.y + e.height / 2) - sz.y);
-              if (sDist <= sz.radius + 35) {
+              if (sDist <= sz.radius + 40) {
                 e.lastLayTime = now;
                 spermZones.splice(s, 1);
-                const clutchCount = Math.random() < 0.4 ? 2 : 1;
-                for (let c = 0; c < clutchCount; c++) {
+                // 산란 알 개수 20개 생성
+                for (let c = 0; c < 20; c++) {
+                  const spreadAngle = (Math.PI * 2 * c) / 20 + Math.random() * 0.2;
+                  const spreadDist = 8 + Math.random() * 48;
                   spawnHorseshoeCrab(
                     Math.random() < 0.5 ? "♀" : "♂",
                     "EGG",
-                    sz.x + (Math.random() * 24 - 12),
-                    sz.y + (Math.random() * 24 - 12),
+                    sz.x + Math.cos(spreadAngle) * spreadDist,
+                    sz.y + Math.sin(spreadAngle) * spreadDist,
                     0
                   );
                 }
@@ -1215,7 +1215,7 @@
         // 암컷 투구게(성숙도 90 이상)의 수정액 탐색
         let seekSpermZone = null;
         if (e.species === "투구게" && e.gender === "♀" && e.stage === "ADULT" && (e.maturity || 0) >= 90 && spermZones.length > 0) {
-          let bestDist = 350;
+          let bestDist = 420;
           spermZones.forEach(sz => {
             const d = Math.hypot(sz.x - eCenterX, sz.y - eCenterY);
             if (d < bestDist) {
@@ -1225,7 +1225,7 @@
           });
         }
 
-        // 배고픈 투구게(새끼/성체)가 해조류 먹이 탐색 (포만감 85 미만일 때 해조류를 찾아 이동)
+        // 배고픈 투구게(새끼/성체)가 해조류 먹이 탐색
         let seekSeaweed = null;
         if (e.species === "투구게" && e.stage !== "EGG" && (e.hunger || 0) < 85 && seaweeds.length > 0) {
           let bestSwDist = 280;
@@ -1310,8 +1310,9 @@
             e.angle = Math.PI - e.angle + (Math.random() - 0.5) * 0.4;
           }
         } else if (e.species === "투구게") {
-          const nearWater = isWaterArea(e.x - 45, e.y, e.width + 90);
-          if (!nearWater) {
+          // 3배 넓어진 바닷가 모래톱 끝까지 자유롭게 이동할 수 있도록 활동 영역 확장
+          const nearWaterOrSand = isWaterArea(e.x - OCEAN_SAND_WIDTH, e.y, e.width + OCEAN_SAND_WIDTH + 45);
+          if (!nearWaterOrSand) {
             e.x = prevX;
             e.y = prevY;
             e.angle = Math.PI - e.angle + (Math.random() - 0.5) * 0.4;
@@ -1406,11 +1407,11 @@
       ctx.fillStyle = riverGrad;
       ctx.fillRect(RIVER_START - camera.x, 0 - camera.y, RIVER_END - RIVER_START, MAP_HEIGHT);
 
+      // 가로 너비 3배로 확장된 바닷가 모래톱 (OCEAN_SAND_WIDTH = 135)
       ctx.fillStyle = "#d9b97e";
-      ctx.fillRect(OCEAN_START - 45 - camera.x, 0 - camera.y, 45, MAP_HEIGHT);
+      ctx.fillRect(OCEAN_START - OCEAN_SAND_WIDTH - camera.x, 0 - camera.y, OCEAN_SAND_WIDTH, MAP_HEIGHT);
     }
 
-    // 🌿 해조류 먹이 오브젝트 그리기 (물결에 살랑거리는 초록 해조류 다발)
     function drawSeaweeds() {
       const t = Date.now() / 500;
       seaweeds.forEach((sw) => {
@@ -1420,11 +1421,9 @@
 
         const sway = Math.sin(t + sw.swayOffset) * 3.5;
 
-        ctx.strokeStyle = "#2ecc71";
         ctx.lineWidth = 3.2;
         ctx.lineCap = "round";
 
-        // 3갈래 해조류 잎줄기
         [-5, 0, 5].forEach((offsetX, idx) => {
           ctx.strokeStyle = idx === 1 ? "#27ae60" : "#55efc4";
           ctx.beginPath();
