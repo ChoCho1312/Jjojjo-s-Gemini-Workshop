@@ -245,7 +245,7 @@
       gap: 11px;
       font-size: 0.96rem;
       line-height: 1.45;
-      max-width: 660px;
+      max-width: 680px;
     }
 
     .guide-row {
@@ -322,7 +322,7 @@
 
     <div id="start-overlay">
       <h1 id="overlay-title">🦅 하스트수리의 삶</h1>
-      <p class="subtitle">생태계 먹이사슬 속에서 살아남으세요</p>
+      <p class="subtitle">자생 번식과 먹이사슬이 살아 움직이는 생태계</p>
 
       <div class="simple-guide">
         <div class="guide-row">
@@ -330,12 +330,12 @@
           <span><b>W, A, S, D</b> 키 (또는 화살표 키)로 날아다녀요.</span>
         </div>
         <div class="guide-row">
-          <span class="guide-badge">사냥·공격</span>
-          <span><b>투구게(체력+20)</b>와 작은 동물은 부딪혀서 먹고, <b>켈렌불라레·큰 공룡</b>은 <b>스페이스바(발톱 공격)</b>로 잡아요.</span>
+          <span class="guide-badge">투구게 일생</span>
+          <span><b>알(10초·무적) → 새끼(20초) → 성체(30초)</b>로 자라며 물속 <b>해조류</b>를 먹고 모래톱에서 번식해요.</span>
         </div>
         <div class="guide-row">
-          <span class="guide-badge">먹이사슬</span>
-          <span><b>[로드리게스·투구게] → 이크티오스테가 → 히네리아 → 하체고프테릭스 → 켈렌불라레 → 크리욜로포사우르스</b> 순으로 위가 아래를 모두 잡아먹어요!</span>
+          <span class="guide-badge">사냥·생태계</span>
+          <span><b>투구게(체력+20)</b>는 부딪혀 먹고, <b>켈렌불라레</b>는 <b>스페이스바</b>로 사냥해요.</span>
         </div>
       </div>
 
@@ -367,15 +367,9 @@
     const RIVER_END = 2450;
     const OCEAN_START = 3400;
 
-    const KELENVOLARE_LIFESPAN = 180000; // 3분(180초) 수명
+    const KELENVOLARE_LIFESPAN = 180000;
+    const HORSESHOE_LIFESPAN = 60000;
 
-    // 먹이사슬 서열 정의 (숫자가 클수록 상위 포식자, 자신보다 낮은 숫자의 생물을 모두 포식 가능)
-    // 1: 로드리게스솔리테어 & 투구게 (한 묶음)
-    // 2: 이크티오스테가
-    // 3: 히네리아
-    // 4: 하체고프테릭스
-    // 5: 켈렌불라레
-    // 6: 크리욜로포사우르스
     const FOOD_CHAIN_RANK = {
       "로드리게스솔리테어": 1,
       "투구게": 1,
@@ -390,6 +384,7 @@
 
     let score = 0;
     let gameStartTime = 0;
+    let lastUpdateTime = 0;
     let isGameRunning = false;
     let isPausedForHelp = false;
     let spawnIntervalId = null;
@@ -400,7 +395,7 @@
     const MAX_OXYGEN = 100;
 
     const player = {
-      x: 1500, y: 1600, width: 85, height: 70, speed: 6.5, angle: 0,
+      x: 1650, y: 1600, width: 85, height: 70, speed: 6.5, angle: 0,
       species: "하스트수리", gender: "♂", hitCooldown: 0,
       clawTimer: 0, clawCooldown: 0
     };
@@ -410,6 +405,8 @@
     let entities = [];
     let nests = [];
     let trees = [];
+    let spermZones = [];
+    let seaweeds = []; // 영원히 계속 생성되는 투구게 먹이(해조류) 오브젝트
     let hasBabySpawned = false;
 
     window.addEventListener("keydown", (e) => {
@@ -461,6 +458,7 @@
       if (isPausedForHelp) {
         isPausedForHelp = false;
         isGameRunning = true;
+        lastUpdateTime = Date.now();
         startOverlay.style.display = "none";
       } else {
         startGame();
@@ -479,10 +477,39 @@
       return isOceanArea(px, py, width) || isRiverArea(px, py, width);
     }
 
-    // 🌲 위쪽으로 뻗은 현실적인 나무 생성 (갈색 줄기 + 진한 초록색 잎)
+    function isSandbarArea(px, py, width = 0) {
+      const center = px + width / 2;
+      const inWestRiverSand = (center >= RIVER_START - 45 && center <= RIVER_START + 15);
+      const inEastRiverSand = (center >= RIVER_END - 15 && center <= RIVER_END + 45);
+      const inOceanSand = (center >= OCEAN_START - 45 && center <= OCEAN_START + 25);
+      return inWestRiverSand || inEastRiverSand || inOceanSand;
+    }
+
+    // 🌿 해조류(먹이 오브젝트) 스폰 함수 - 강과 바다 물속/물가에서 영원히 계속 생성
+    function spawnSeaweed(customX = null, customY = null) {
+      let sx = customX;
+      let sy = customY;
+      if (sx === null || sy === null) {
+        if (Math.random() < 0.65) {
+          // 강 내부 (X: 1965 ~ 2435)
+          sx = RIVER_START + 15 + Math.random() * (RIVER_END - RIVER_START - 30);
+        } else {
+          // 해안가 얕은 바다 (X: 3410 ~ 3800)
+          sx = OCEAN_START + 10 + Math.random() * 390;
+        }
+        sy = 120 + Math.random() * (MAP_HEIGHT - 240);
+      }
+
+      seaweeds.push({
+        x: sx,
+        y: sy,
+        radius: 14 + Math.random() * 6,
+        swayOffset: Math.random() * Math.PI * 2
+      });
+    }
+
     function initTrees() {
       trees = [];
-      // 서쪽 숲 (0 ~ RIVER_START)
       for (let i = 0; i < 65; i++) {
         trees.push({
           x: 90 + Math.random() * (RIVER_START - 220),
@@ -490,7 +517,6 @@
           scale: 0.8 + Math.random() * 0.55
         });
       }
-      // 동쪽 숲 (RIVER_END ~ OCEAN_START)
       for (let i = 0; i < 38; i++) {
         trees.push({
           x: RIVER_END + 110 + Math.random() * (OCEAN_START - RIVER_END - 220),
@@ -498,7 +524,6 @@
           scale: 0.8 + Math.random() * 0.55
         });
       }
-      // Y좌표 기준 정렬하여 자연스러운 원근감(겹침) 연출
       trees.sort((a, b) => a.y - b.y);
     }
 
@@ -524,6 +549,7 @@
       for (let i = entities.length - 1; i >= 0; i--) {
         const e = entities[i];
         if (e.species === "하스트수리") continue;
+        if (e.species === "투구게" && e.stage === "EGG") continue;
 
         const eCenterX = e.x + e.width / 2;
         const eCenterY = e.y + e.height / 2;
@@ -573,9 +599,68 @@
       ];
     }
 
+    function spawnHorseshoeCrab(gender = null, stage = "ADULT", customX = null, customY = null, initialAgeMs = null) {
+      const crabGender = gender || (Math.random() < 0.5 ? "♀" : "♂");
+      let ageMs = initialAgeMs;
+      if (ageMs === null) {
+        if (stage === "EGG") ageMs = 0;
+        else if (stage === "BABY") ageMs = 10000;
+        else ageMs = 30000 + Math.random() * 8000;
+      }
+
+      const sizeByStage = {
+        "EGG": [32, 32],
+        "BABY": [54, 32],
+        "ADULT": [92, 52]
+      };
+      const [entityW, entityH] = sizeByStage[stage];
+
+      let spawnX = customX;
+      let spawnY = customY;
+
+      if (spawnX === null || spawnY === null) {
+        const zone = Math.random();
+        if (zone < 0.65) {
+          spawnX = RIVER_START - 40 + Math.random() * (RIVER_END - RIVER_START + 80 - entityW);
+        } else {
+          spawnX = OCEAN_START - 40 + Math.random() * 240;
+        }
+        spawnY = 160 + Math.random() * (MAP_HEIGHT - 320);
+      }
+
+      const baseSpeed = stage === "EGG" ? 0 : (stage === "BABY" ? 1.0 : 1.35 + Math.random() * 0.45);
+      const initialMaturity = stage === "ADULT" ? Math.min(100, ((ageMs - 30000) / 1000) * 10) : 0;
+
+      entities.push({
+        x: spawnX,
+        y: spawnY,
+        baseSpeed: baseSpeed,
+        speed: baseSpeed,
+        width: entityW,
+        height: entityH,
+        type: stage === "EGG" ? "투구게(알·무적)" : (stage === "BABY" ? `투구게(${crabGender}) 새끼` : `투구게(${crabGender})`),
+        species: "투구게",
+        gender: crabGender,
+        stage: stage,
+        birthTime: Date.now() - ageMs,
+        hunger: 80 + Math.random() * 15,
+        maturity: initialMaturity,
+        isDead: false,
+        lastLayTime: 0,
+        isTarget: true,
+        angle: Math.random() * Math.PI * 2,
+        chaseState: "IDLE",
+        chaseTimer: 0,
+        isResting: false,
+        hp: stage === "BABY" ? 25 : 40,
+        maxHp: stage === "BABY" ? 25 : 40
+      });
+    }
+
     function startGame() {
       score = 0;
       gameStartTime = Date.now();
+      lastUpdateTime = gameStartTime;
       playerHp = MAX_HP;
       playerOxygen = MAX_OXYGEN;
       isGameRunning = true;
@@ -583,7 +668,9 @@
       hasBabySpawned = false;
       entities = [];
       clawEffects = [];
-      player.x = 1500;
+      spermZones = [];
+      seaweeds = [];
+      player.x = 1650;
       player.y = 1600;
       player.hitCooldown = 0;
       player.clawTimer = 0;
@@ -599,29 +686,61 @@
       spawnHaastEagleFemale();
       spawnHaastEagleBaby(Math.PI);
 
-      spawnKelenvolare("♀", false, 1280, 1400, 60000);
-      spawnKelenvolare("♂", false, 1360, 1440, 75000);
-      spawnKelenvolare("♀", true, 1320, 1480, 0);
-
-      for (let i = 0; i < 3; i++) {
-        spawnKelenvolare("♀", false, null, null, 50000 + Math.random() * 50000);
-        spawnKelenvolare("♂", false, null, null, 50000 + Math.random() * 50000);
-        spawnKelenvolare(Math.random() < 0.5 ? "♀" : "♂", true, null, null, 0);
+      // 🌿 초기 해조류 65개 생성 (강 & 해안가 주변에 풍부하게 배치, 이후 영원히 계속 생성됨)
+      for (let i = 0; i < 65; i++) {
+        spawnSeaweed();
       }
 
-      spawnSpecificPredator("크리욜로포사우르스", 1780, 1450);
+      // 🦀 투구게 초기 자연 개체: 딱 30마리만 생성 (이후 추가 자연 리스폰 불가)
+      const nearCrabCoords = [
+        [1920, 1420, "♂"],
+        [1935, 1480, "♀"],
+        [1918, 1550, "♂"],
+        [1940, 1620, "♀"],
+        [1922, 1690, "♂"],
+        [1945, 1750, "♀"],
+        [2440, 1520, "♂"],
+        [2450, 1640, "♀"]
+      ];
+      nearCrabCoords.forEach(([cx, cy, g]) => {
+        spawnHorseshoeCrab(g, "ADULT", cx, cy, 37000);
+      });
+
+      for (let i = 0; i < 22; i++) {
+        const g = i % 2 === 0 ? "♂" : "♀";
+        const st = i < 4 ? "BABY" : "ADULT";
+        spawnHorseshoeCrab(g, st);
+      }
+
+      // 🦕 켈렌불라레 초기 자연 개체: 딱 10마리만 생성 (이후 추가 자연 리스폰 불가)
+      spawnKelenvolare("♀", false, 1380, 1400, 60000);
+      spawnKelenvolare("♂", false, 1460, 1440, 75000);
+      spawnKelenvolare("♀", true, 1420, 1480, 0);
+
+      for (let i = 0; i < 7; i++) {
+        const g = i % 2 === 0 ? "♀" : "♂";
+        const isB = i >= 5;
+        spawnKelenvolare(g, isB, null, null, isB ? 0 : (50000 + Math.random() * 45000));
+      }
+
+      spawnSpecificPredator("크리욜로포사우르스", 1180, 1350);
       spawnSpecificPredator("하체고프테릭스", 1120, 1820);
 
-      for (let i = 0; i < 36; i++) spawnEntity(true);
+      for (let i = 0; i < 26; i++) spawnEntity(true);
 
       if (spawnIntervalId) clearInterval(spawnIntervalId);
       spawnIntervalId = setInterval(() => {
-        if (isGameRunning && entities.length < 65) spawnEntity(false);
-        const kelCount = entities.filter(e => e.species === "켈렌불라레").length;
-        if (isGameRunning && kelCount < 4) {
-          spawnKelenvolare(Math.random() < 0.5 ? "♀" : "♂", false, null, null, 46000);
+        if (!isGameRunning) return;
+
+        // 🌿 해조류 먹이 오브젝트는 영원히 계속 자라나도록 보충 (최대 80개까지 지속 생성)
+        if (seaweeds.length < 80) {
+          spawnSeaweed();
+          spawnSeaweed();
         }
-      }, 1100);
+
+        // 투구게(30마리 한정)와 켈렌불라레(10마리 한정)를 제외한 일반 생물만 보충
+        if (entities.length < 75) spawnEntity(false);
+      }, 900);
     }
 
     function spawnSpecificPredator(type, px, py) {
@@ -668,9 +787,6 @@
     }
 
     function spawnKelenvolare(gender, isBaby = false, customX = null, customY = null, initialAgeMs = 0) {
-      const kelCount = entities.filter(e => e.species === "켈렌불라레").length;
-      if (kelCount >= 26) return;
-
       const w = isBaby ? 64 : 120;
       const h = isBaby ? 48 : 85;
 
@@ -710,19 +826,17 @@
       let type = "로드리게스솔리테어";
       let isTarget = true;
 
-      if (rand < 10) { type = "크리욜로포사우르스"; isTarget = false; }
-      else if (rand < 18) { type = "하체고프테릭스"; isTarget = false; }
-      else if (rand < 38) { type = "히네리아"; isTarget = true; }
-      else if (rand < 58) { type = "이크티오스테가"; isTarget = true; }
-      else if (rand < 80) { type = "투구게"; isTarget = true; }
+      if (rand < 12) { type = "크리욜로포사우르스"; isTarget = false; }
+      else if (rand < 22) { type = "하체고프테릭스"; isTarget = false; }
+      else if (rand < 46) { type = "히네리아"; isTarget = true; }
+      else if (rand < 70) { type = "이크티오스테가"; isTarget = true; }
 
       const sizeMap = {
         "하체고프테릭스": [280, 270],
         "크리욜로포사우르스": [240, 70],
         "히네리아": [120, 50],
         "이크티오스테가": [130, 48],
-        "로드리게스솔리테어": [65, 45],
-        "투구게": [78, 44]
+        "로드리게스솔리테어": [65, 45]
       };
       const [entityW, entityH] = sizeMap[type];
 
@@ -735,23 +849,13 @@
         } else {
           spawnX = Math.random() * (MAP_WIDTH - OCEAN_START - entityW - 100) + OCEAN_START + 50;
         }
-      } else if (type === "투구게") {
-        // 강가 및 해안가 물/모래 경계 주변에서 서식
-        const zone = Math.random();
-        if (zone < 0.45) {
-          spawnX = RIVER_START - 30 + Math.random() * (RIVER_END - RIVER_START + 60 - entityW);
-        } else {
-          spawnX = OCEAN_START - 35 + Math.random() * 260;
-        }
       } else if (type === "이크티오스테가") {
         spawnX = Math.random() * (MAP_WIDTH - 400) + 200;
       } else {
         spawnX = getLandSpawnX(entityW);
       }
 
-      const baseSpeed = type === "투구게"
-        ? (1.1 + Math.random() * 0.7)
-        : (isTarget ? (1.8 + Math.random() * 1.6) : (2.2 + Math.random() * 1.0));
+      const baseSpeed = isTarget ? (1.8 + Math.random() * 1.6) : (2.2 + Math.random() * 1.0);
 
       entities.push({
         x: spawnX, y: spawnY,
@@ -818,6 +922,8 @@
       if (!isGameRunning) return;
 
       const now = Date.now();
+      const dtSec = Math.min(0.1, (now - lastUpdateTime) / 1000);
+      lastUpdateTime = now;
 
       const elapsedSec = Math.floor((now - gameStartTime) / 1000);
       const isNight = (elapsedSec % 120) >= 60;
@@ -863,6 +969,12 @@
 
       updateStatusBars();
 
+      for (let sIdx = spermZones.length - 1; sIdx >= 0; sIdx--) {
+        if (now - spermZones[sIdx].createdAt > 45000) {
+          spermZones.splice(sIdx, 1);
+        }
+      }
+
       for (let cIdx = clawEffects.length - 1; cIdx >= 0; cIdx--) {
         clawEffects[cIdx].life--;
         if (clawEffects[cIdx].life <= 0) clawEffects.splice(cIdx, 1);
@@ -872,7 +984,114 @@
         const e = entities[i];
         if (!e) continue;
 
-        // 켈렌불라레 3분(180초) 수명 주기
+        // 🦀 투구게 일생 주기 (알 10초 무적 -> 새끼 20초 -> 성체 30초, 총 60초)
+        if (e.species === "투구게") {
+          const age = now - e.birthTime;
+
+          if (age >= HORSESHOE_LIFESPAN) {
+            e.isDead = true;
+            entities.splice(i, 1);
+            continue;
+          }
+
+          if (age < 10000) {
+            e.stage = "EGG";
+            e.width = 32;
+            e.height = 32;
+            e.speed = 0;
+            e.type = "투구게(알·무적)";
+          } else if (age < 30000) {
+            if (e.stage !== "BABY") {
+              e.stage = "BABY";
+              e.width = 54;
+              e.height = 32;
+              e.speed = 1.0;
+              e.hp = 25;
+              e.maxHp = 25;
+            }
+            e.type = `투구게(${e.gender}) 새끼`;
+          } else {
+            if (e.stage !== "ADULT") {
+              e.stage = "ADULT";
+              e.width = 92;
+              e.height = 52;
+              e.speed = 1.4;
+              e.hp = 40;
+              e.maxHp = 40;
+              e.maturity = 0;
+            }
+            e.maturity = Math.min(100, (e.maturity || 0) + 10 * dtSec);
+            e.type = `투구게(${e.gender}) 성숙:${Math.floor(e.maturity)}`;
+          }
+
+          // 투구게 배고픔 감소 및 해조류 먹기
+          if (e.stage !== "EGG") {
+            e.hunger = Math.max(0, (e.hunger ?? 80) - 0.8 * dtSec);
+            const crabCX = e.x + e.width / 2;
+            const crabCY = e.y + e.height / 2;
+
+            for (let swIdx = seaweeds.length - 1; swIdx >= 0; swIdx--) {
+              const sw = seaweeds[swIdx];
+              if (Math.hypot(crabCX - sw.x, crabCY - sw.y) < e.width * 0.48 + sw.radius) {
+                e.hunger = Math.min(100, (e.hunger || 0) + 30);
+                seaweeds.splice(swIdx, 1); // 먹힌 해조류 제거 (타이머에서 영원히 다시 자라남)
+                break;
+              }
+            }
+          }
+
+          // 수컷 성체: 모래톱에서 1/10000 확률 && 배고픔 70 이상 && 새끼/알 아님 && 사체 아님 && 성숙도 75 이상일 때 수정액 살포
+          if (
+            e.gender === "♂" &&
+            e.stage === "ADULT" &&
+            !e.isDead &&
+            (e.hunger || 0) >= 70 &&
+            (e.maturity || 0) >= 75 &&
+            isSandbarArea(e.x, e.y, e.width)
+          ) {
+            if (Math.random() < 0.0001) {
+              spermZones.push({
+                x: e.x + e.width / 2,
+                y: e.y + e.height / 2,
+                radius: 55,
+                createdAt: now
+              });
+            }
+          }
+
+          // 암컷 성체: 성숙도 90 이상 && 모래톱의 수정액 근처 도달 시 알을 낳아 후손을 이어줌
+          if (
+            e.gender === "♀" &&
+            e.stage === "ADULT" &&
+            !e.isDead &&
+            (e.maturity || 0) >= 90 &&
+            (now - (e.lastLayTime || 0) > 12000)
+          ) {
+            for (let s = spermZones.length - 1; s >= 0; s--) {
+              const sz = spermZones[s];
+              const sDist = Math.hypot((e.x + e.width / 2) - sz.x, (e.y + e.height / 2) - sz.y);
+              if (sDist <= sz.radius + 35) {
+                e.lastLayTime = now;
+                spermZones.splice(s, 1);
+                const clutchCount = Math.random() < 0.4 ? 2 : 1;
+                for (let c = 0; c < clutchCount; c++) {
+                  spawnHorseshoeCrab(
+                    Math.random() < 0.5 ? "♀" : "♂",
+                    "EGG",
+                    sz.x + (Math.random() * 24 - 12),
+                    sz.y + (Math.random() * 24 - 12),
+                    0
+                  );
+                }
+                break;
+              }
+            }
+          }
+
+          if (e.stage === "EGG") continue;
+        }
+
+        // 🦕 켈렌불라레 3분(180초) 수명 주기
         if (e.species === "켈렌불라레") {
           const age = now - e.birthTime;
 
@@ -905,7 +1124,7 @@
         const dy = playerCenterY - eCenterY;
         const distance = Math.hypot(dx, dy);
 
-        // 아군 하스트수리(암컷 및 새끼들)
+        // 아군 하스트수리
         if (e.species === "하스트수리" && e !== player) {
           e.orbitAngle = (e.orbitAngle || 0) + (e.orbitSpeed || 0.03);
 
@@ -966,20 +1185,20 @@
         const prevX = e.x;
         const prevY = e.y;
 
-        // 🌿 먹이사슬 서열 탐색 (자기보다 낮은 단계 생물 추적 & 포식)
+        // 먹이사슬 서열 탐색
         const myRank = FOOD_CHAIN_RANK[e.species] || 0;
         let preyTarget = null;
-        let nearestPreyDist = 290;
+        let nearestPreyDist = 260;
 
         if (myRank > 1) {
           for (let k = 0; k < entities.length; k++) {
             const candidate = entities[k];
             if (candidate === e || candidate.species === "하스트수리") continue;
+            if (candidate.species === "투구게" && candidate.stage === "EGG") continue;
+
             const candRank = FOOD_CHAIN_RANK[candidate.species] || 0;
 
-            // 자신보다 서열이 낮은 생물만 먹잇감으로 인식 (로드리게스 & 투구게는 같은 1단계라 서로 먹지 않음)
             if (candRank > 0 && candRank < myRank) {
-              // 지형 제약으로 갈 수 없는 곳의 먹이는 쫓지 않음
               const candInWater = isWaterArea(candidate.x, candidate.y, candidate.width);
               if (e.type === "히네리아" && !candInWater) continue;
               if (e.species !== "이크티오스테가" && e.type !== "하체고프테릭스" && e.type !== "히네리아" && candInWater) continue;
@@ -993,14 +1212,38 @@
           }
         }
 
-        // 이동 로직 결정
+        // 암컷 투구게(성숙도 90 이상)의 수정액 탐색
+        let seekSpermZone = null;
+        if (e.species === "투구게" && e.gender === "♀" && e.stage === "ADULT" && (e.maturity || 0) >= 90 && spermZones.length > 0) {
+          let bestDist = 350;
+          spermZones.forEach(sz => {
+            const d = Math.hypot(sz.x - eCenterX, sz.y - eCenterY);
+            if (d < bestDist) {
+              bestDist = d;
+              seekSpermZone = sz;
+            }
+          });
+        }
+
+        // 배고픈 투구게(새끼/성체)가 해조류 먹이 탐색 (포만감 85 미만일 때 해조류를 찾아 이동)
+        let seekSeaweed = null;
+        if (e.species === "투구게" && e.stage !== "EGG" && (e.hunger || 0) < 85 && seaweeds.length > 0) {
+          let bestSwDist = 280;
+          seaweeds.forEach(sw => {
+            const d = Math.hypot(sw.x - eCenterX, sw.y - eCenterY);
+            if (d < bestSwDist) {
+              bestSwDist = d;
+              seekSeaweed = sw;
+            }
+          });
+        }
+
         if (e.species === "켈렌불라레" && now < (e.fleeUntil || 0)) {
           e.chaseState = "FLEEING";
           e.angle = Math.atan2(-dy, -dx);
           e.x += Math.cos(e.angle) * (e.speed * 1.4);
           e.y += Math.sin(e.angle) * (e.speed * 1.4);
         } else if (!e.isTarget && e.species !== "켈렌불라레" && distance < 420) {
-          // 대형 포식자(크리욜로포사우르스, 하체고프테릭스)의 플레이어 추격
           if (e.chaseState === "IDLE") {
             e.chaseState = "CHASING";
             e.chaseTimer = now;
@@ -1020,24 +1263,31 @@
             e.isResting = false;
             e.chaseTimer = now;
           }
-        } else if (e.isTarget && distance < 150) {
-          // 일반 먹잇감의 플레이어 회피
+        } else if (e.isTarget && e.species !== "투구게" && distance < 150) {
           e.chaseState = "FLEEING";
           e.angle = Math.atan2(-dy, -dx);
           e.x += Math.cos(e.angle) * (e.speed * 1.35);
           e.y += Math.sin(e.angle) * (e.speed * 1.35);
+        } else if (seekSpermZone) {
+          const sAngle = Math.atan2(seekSpermZone.y - eCenterY, seekSpermZone.x - eCenterX);
+          e.angle = sAngle;
+          e.x += Math.cos(sAngle) * (e.speed * 1.2);
+          e.y += Math.sin(sAngle) * (e.speed * 1.2);
+        } else if (seekSeaweed) {
+          const fAngle = Math.atan2(seekSeaweed.y - eCenterY, seekSeaweed.x - eCenterX);
+          e.angle = fAngle;
+          e.x += Math.cos(fAngle) * (e.speed * 1.15);
+          e.y += Math.sin(fAngle) * (e.speed * 1.15);
         } else if (preyTarget && !isCourting) {
-          // 자신보다 하위 먹이사슬 생물을 향해 사냥 추격
           e.chaseState = "HUNTING";
           const preyAngle = Math.atan2(
             (preyTarget.y + preyTarget.height / 2) - eCenterY,
             (preyTarget.x + preyTarget.width / 2) - eCenterX
           );
           e.angle = preyAngle;
-          e.x += Math.cos(preyAngle) * (e.speed * 1.25);
-          e.y += Math.sin(preyAngle) * (e.speed * 1.25);
+          e.x += Math.cos(preyAngle) * (e.speed * 1.2);
+          e.y += Math.sin(preyAngle) * (e.speed * 1.2);
         } else {
-          // 평상시 배회
           e.chaseState = "IDLE";
           e.isResting = false;
           const currentSpeed = isCourting ? e.speed * 0.5 : e.speed;
@@ -1046,13 +1296,11 @@
           e.y += Math.sin(e.angle) * currentSpeed;
         }
 
-        // 맵 경계 반사
         if (e.x <= 0) { e.x = 0; e.angle = Math.PI - e.angle; }
         else if (e.x + e.width >= MAP_WIDTH) { e.x = MAP_WIDTH - e.width; e.angle = Math.PI - e.angle; }
         if (e.y <= 0) { e.y = 0; e.angle = -e.angle; }
         else if (e.y + e.height >= MAP_HEIGHT) { e.y = MAP_HEIGHT - e.height; e.angle = -e.angle; }
 
-        // 지형 경계 체크
         const inWater = isWaterArea(e.x, e.y, e.width);
 
         if (e.type === "히네리아") {
@@ -1061,8 +1309,7 @@
             e.y = prevY;
             e.angle = Math.PI - e.angle + (Math.random() - 0.5) * 0.4;
           }
-        } else if (e.type === "투구게") {
-          // 투구게는 강·바다 물속과 바로 인접한 모래톱까지만 이동
+        } else if (e.species === "투구게") {
           const nearWater = isWaterArea(e.x - 45, e.y, e.width + 90);
           if (!nearWater) {
             e.x = prevX;
@@ -1077,12 +1324,14 @@
           }
         }
 
-        // 🍽️ 생물 간 먹이사슬 포식 실행 (상위 종이 하위 종과 부딪히면 잡아먹음)
+        // 생물 간 먹이사슬 포식 실행
         if (myRank > 1) {
           for (let j = entities.length - 1; j >= 0; j--) {
             if (j === i) continue;
             const victim = entities[j];
             if (!victim || victim.species === "하스트수리") continue;
+            if (victim.species === "투구게" && victim.stage === "EGG") continue;
+
             const vRank = FOOD_CHAIN_RANK[victim.species] || 0;
 
             if (vRank > 0 && vRank < myRank && checkCollision(e, victim)) {
@@ -1094,12 +1343,14 @@
           }
         }
 
-        // 플레이어와 단순 접촉 시 판정
+        // 플레이어와 접촉 판정
         if (checkCollision(player, e)) {
+          if (e.species === "투구게" && e.stage === "EGG") continue;
+
           if (e.isTarget) {
             if (e.species === "투구게") {
               score += 2;
-              playerHp = Math.min(MAX_HP, playerHp + 20); // 투구게 먹으면 체력 +20
+              playerHp = Math.min(MAX_HP, playerHp + 20);
               playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 20);
             } else {
               score += 1;
@@ -1122,7 +1373,6 @@
     }
 
     function drawMapBackground() {
-      // 바다 배경 (깊이감 있는 청록색 그라데이션)
       const oceanGrad = ctx.createLinearGradient(OCEAN_START - camera.x, 0, MAP_WIDTH - camera.x, 0);
       oceanGrad.addColorStop(0, "#1d6378");
       oceanGrad.addColorStop(0.4, "#134b5f");
@@ -1130,7 +1380,6 @@
       ctx.fillStyle = oceanGrad;
       ctx.fillRect(OCEAN_START - camera.x, 0 - camera.y, MAP_WIDTH - OCEAN_START, MAP_HEIGHT);
 
-      // 숲 바닥 (자연스러운 이끼·풀색 그라데이션)
       const forestGrad = ctx.createLinearGradient(0 - camera.x, 0, OCEAN_START - camera.x, 0);
       forestGrad.addColorStop(0, "#274725");
       forestGrad.addColorStop(0.5, "#31572c");
@@ -1138,7 +1387,6 @@
       ctx.fillStyle = forestGrad;
       ctx.fillRect(0 - camera.x, 0 - camera.y, OCEAN_START, MAP_HEIGHT);
 
-      // 숲 바닥 수풀/이끼 질감 디테일
       ctx.fillStyle = "rgba(18, 42, 16, 0.32)";
       for (let i = 100; i < MAP_HEIGHT; i += 280) {
         ctx.beginPath();
@@ -1148,11 +1396,9 @@
         ctx.fill();
       }
 
-      // 강가 모래톱
       ctx.fillStyle = "#d9b97e";
       ctx.fillRect(RIVER_START - 45 - camera.x, 0 - camera.y, (RIVER_END - RIVER_START) + 90, MAP_HEIGHT);
 
-      // 강물
       const riverGrad = ctx.createLinearGradient(RIVER_START - camera.x, 0, RIVER_END - camera.x, 0);
       riverGrad.addColorStop(0, "#1f6694");
       riverGrad.addColorStop(0.5, "#2980b9");
@@ -1160,29 +1406,66 @@
       ctx.fillStyle = riverGrad;
       ctx.fillRect(RIVER_START - camera.x, 0 - camera.y, RIVER_END - RIVER_START, MAP_HEIGHT);
 
-      // 해안가 모래사장
       ctx.fillStyle = "#d9b97e";
       ctx.fillRect(OCEAN_START - 45 - camera.x, 0 - camera.y, 45, MAP_HEIGHT);
     }
 
-    // 🌲 위쪽을 향한 현실적인 나무 그리기 (갈색 줄기 + 진한 초록색 잎)
+    // 🌿 해조류 먹이 오브젝트 그리기 (물결에 살랑거리는 초록 해조류 다발)
+    function drawSeaweeds() {
+      const t = Date.now() / 500;
+      seaweeds.forEach((sw) => {
+        const sx = sw.x - camera.x;
+        const sy = sw.y - camera.y;
+        if (sx < -50 || sx > camera.width + 50 || sy < -50 || sy > camera.height + 50) return;
+
+        const sway = Math.sin(t + sw.swayOffset) * 3.5;
+
+        ctx.strokeStyle = "#2ecc71";
+        ctx.lineWidth = 3.2;
+        ctx.lineCap = "round";
+
+        // 3갈래 해조류 잎줄기
+        [-5, 0, 5].forEach((offsetX, idx) => {
+          ctx.strokeStyle = idx === 1 ? "#27ae60" : "#55efc4";
+          ctx.beginPath();
+          ctx.moveTo(sx + offsetX, sy + 8);
+          ctx.quadraticCurveTo(sx + offsetX + sway, sy, sx + offsetX - sway * 0.8, sy - 10);
+          ctx.stroke();
+        });
+      });
+    }
+
+    function drawSpermZones() {
+      spermZones.forEach((sz) => {
+        const sx = sz.x - camera.x;
+        const sy = sz.y - camera.y;
+        if (sx < -100 || sx > camera.width + 100 || sy < -100 || sy > camera.height + 100) return;
+
+        const grad = ctx.createRadialGradient(sx, sy, 4, sx, sy, sz.radius);
+        grad.addColorStop(0, "rgba(255, 255, 255, 0.72)");
+        grad.addColorStop(0.5, "rgba(235, 248, 255, 0.35)");
+        grad.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(sx, sy, sz.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
     function drawTrees() {
       trees.forEach((tree) => {
         const tx = tree.x - camera.x;
         const ty = tree.y - camera.y;
         const s = tree.scale;
 
-        // 화면 밖 나무는 렌더링 스킵
         if (tx < -120 || tx > camera.width + 120 || ty < -160 || ty > camera.height + 80) return;
 
-        // 1. 나무 바닥 그림자
         ctx.fillStyle = "rgba(8, 20, 8, 0.35)";
         ctx.beginPath();
         ctx.ellipse(tx, ty + 4 * s, 34 * s, 13 * s, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // 2. 위쪽으로 뻗은 갈색 나무 줄기
-        ctx.fillStyle = "#5c3a21"; // 메인 갈색 줄기
+        ctx.fillStyle = "#5c3a21";
         ctx.beginPath();
         ctx.moveTo(tx - 11 * s, ty + 3 * s);
         ctx.lineTo(tx - 7 * s, ty - 48 * s);
@@ -1191,7 +1474,6 @@
         ctx.closePath();
         ctx.fill();
 
-        // 줄기 오른쪽 명암(어두운 갈색)
         ctx.fillStyle = "#3e2615";
         ctx.beginPath();
         ctx.moveTo(tx + 1 * s, ty + 3 * s);
@@ -1201,15 +1483,12 @@
         ctx.closePath();
         ctx.fill();
 
-        // 3. 위쪽으로 풍성하게 솟은 진한 초록색 잎(수관)
-        // 가장 뒤쪽(어두운 진초록 잎)
         ctx.fillStyle = "#133a18";
         ctx.beginPath();
         ctx.arc(tx - 18 * s, ty - 52 * s, 24 * s, 0, Math.PI * 2);
         ctx.arc(tx + 18 * s, ty - 52 * s, 24 * s, 0, Math.PI * 2);
         ctx.fill();
 
-        // 중간층(진한 초록색 잎)
         ctx.fillStyle = "#1b4d20";
         ctx.beginPath();
         ctx.arc(tx - 12 * s, ty - 66 * s, 26 * s, 0, Math.PI * 2);
@@ -1217,7 +1496,6 @@
         ctx.arc(tx, ty - 54 * s, 27 * s, 0, Math.PI * 2);
         ctx.fill();
 
-        // 최상단(위쪽을 향해 봉긋 솟은 진초록 잎)
         ctx.fillStyle = "#236029";
         ctx.beginPath();
         ctx.arc(tx, ty - 80 * s, 24 * s, 0, Math.PI * 2);
@@ -1244,60 +1522,72 @@
       });
     }
 
-    // 🦀 투구게 그리기 (연한 갈색, 투구 같은 머리배, 선대칭 사다리꼴의 배, 긴 꼬리)
-    function drawHorseshoeCrab(w, h) {
-      // 1. 길고 뾰족한 꼬리 (꼬리검, 연한 갈색)
-      ctx.fillStyle = "#b8956a";
-      ctx.beginPath();
-      ctx.moveTo(-w * 0.12, -h * 0.05);
-      ctx.lineTo(-w * 0.56, 0);
-      ctx.lineTo(-w * 0.12, h * 0.05);
-      ctx.closePath();
-      ctx.fill();
+    function drawHorseshoeCrab(w, h, stage = "ADULT") {
+      if (stage === "EGG") {
+        ctx.strokeStyle = "rgba(116, 185, 255, 0.85)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, w * 0.48, 0, Math.PI * 2);
+        ctx.stroke();
 
-      // 2. 선대칭 사다리꼴 모양의 배 (후체)
-      ctx.fillStyle = "#c9a679";
-      ctx.strokeStyle = "#8c6b43";
+        ctx.fillStyle = "#e8d5b7";
+        ctx.beginPath();
+        ctx.arc(-4, -3, 5.5, 0, Math.PI * 2);
+        ctx.arc(4, -2, 5.5, 0, Math.PI * 2);
+        ctx.arc(0, 4, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+
+      ctx.fillStyle = stage === "BABY" ? "#d6b892" : "#c29b6e";
+      ctx.strokeStyle = "#5c4023";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      // 앞쪽(머리배와 연결되는 넓은 변) -> 뒤쪽(꼬리 쪽으로 좁아지는 변)
-      ctx.moveTo(w * 0.06, -h * 0.34);
-      ctx.lineTo(-w * 0.15, -h * 0.18);
-      ctx.lineTo(-w * 0.15, h * 0.18);
-      ctx.lineTo(w * 0.06, h * 0.34);
+      ctx.moveTo(-w * 0.12, -h * 0.06);
+      ctx.lineTo(-w * 0.58, 0);
+      ctx.lineTo(-w * 0.12, h * 0.06);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
-      // 배 등딱지 마디 무늬
-      ctx.strokeStyle = "rgba(110, 80, 45, 0.55)";
+      ctx.fillStyle = stage === "BABY" ? "#e3c8a4" : "#d4af82";
+      ctx.strokeStyle = "#5c4023";
+      ctx.lineWidth = 1.7;
       ctx.beginPath();
-      ctx.moveTo(-w * 0.04, -h * 0.24);
-      ctx.lineTo(-w * 0.04, h * 0.24);
-      ctx.stroke();
-
-      // 3. 투구 같은 둥근 말굽 모양의 머리배 (전체)
-      ctx.fillStyle = "#d8b88e";
-      ctx.strokeStyle = "#8c6b43";
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      // 말굽 뒤쪽 양 끝 뾰족한 부분에서 앞쪽 둥근 투구 곡선까지
-      ctx.moveTo(w * 0.01, -h * 0.44);
-      ctx.lineTo(w * 0.08, -h * 0.46);
-      ctx.quadraticCurveTo(w * 0.48, -h * 0.44, w * 0.48, 0);
-      ctx.quadraticCurveTo(w * 0.48, h * 0.44, w * 0.08, h * 0.46);
-      ctx.lineTo(w * 0.01, h * 0.44);
-      ctx.lineTo(w * 0.06, h * 0.32);
-      ctx.lineTo(w * 0.06, -h * 0.32);
+      ctx.moveTo(w * 0.06, -h * 0.35);
+      ctx.lineTo(-w * 0.16, -h * 0.18);
+      ctx.lineTo(-w * 0.16, h * 0.18);
+      ctx.lineTo(w * 0.06, h * 0.35);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
-      // 투구 껍질 위 입체 능선 및 작은 홑눈/겹눈 표현
-      ctx.fillStyle = "#7a5c38";
+      ctx.strokeStyle = "#7a5630";
+      ctx.lineWidth = 1.1;
       ctx.beginPath();
-      ctx.arc(w * 0.26, -h * 0.22, 2.2, 0, Math.PI * 2);
-      ctx.arc(w * 0.26, h * 0.22, 2.2, 0, Math.PI * 2);
+      ctx.moveTo(-w * 0.05, -h * 0.25);
+      ctx.lineTo(-w * 0.05, h * 0.25);
+      ctx.stroke();
+
+      ctx.fillStyle = stage === "BABY" ? "#eed7b8" : "#e3c298";
+      ctx.strokeStyle = "#5c4023";
+      ctx.lineWidth = 1.9;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.00, -h * 0.45);
+      ctx.lineTo(w * 0.08, -h * 0.47);
+      ctx.quadraticCurveTo(w * 0.50, -h * 0.45, w * 0.50, 0);
+      ctx.quadraticCurveTo(w * 0.50, h * 0.45, w * 0.08, h * 0.47);
+      ctx.lineTo(w * 0.00, h * 0.45);
+      ctx.lineTo(w * 0.06, h * 0.33);
+      ctx.lineTo(w * 0.06, -h * 0.33);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#4a3319";
+      ctx.beginPath();
+      ctx.arc(w * 0.27, -h * 0.22, stage === "BABY" ? 1.8 : 2.5, 0, Math.PI * 2);
+      ctx.arc(w * 0.27, h * 0.22, stage === "BABY" ? 1.8 : 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -1670,6 +1960,8 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawMapBackground();
+      drawSeaweeds();
+      drawSpermZones();
       drawNests();
 
       clawEffects.forEach((c) => {
@@ -1687,7 +1979,6 @@
         ctx.restore();
       });
 
-      // 지상/수중 생물 먼저 렌더링
       entities.forEach((e) => {
         if (e.species === "하스트수리") return;
         if (
@@ -1707,33 +1998,33 @@
           else if (e.type === "로드리게스솔리테어") drawSolitaire(e.width, e.height);
           else if (e.type === "히네리아") drawHyneria(e.width, e.height);
           else if (e.type === "이크티오스테가") drawIchthyostega(e.width, e.height);
-          else if (e.type === "투구게") drawHorseshoeCrab(e.width, e.height);
+          else if (e.species === "투구게") drawHorseshoeCrab(e.width, e.height, e.stage);
 
           ctx.restore();
 
-          ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
-          ctx.fillRect(screenX - 24, screenY - e.height / 2 - 14, 48, 4);
-          ctx.fillStyle = (e.isTarget || e.species === "켈렌불라레") ? "#2ecc71" : "#ff4757";
-          ctx.fillRect(screenX - 24, screenY - e.height / 2 - 14, (e.hp / e.maxHp) * 48, 4);
+          if (!(e.species === "투구게" && e.stage === "EGG")) {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+            ctx.fillRect(screenX - 24, screenY - e.height / 2 - 14, 48, 4);
+            ctx.fillStyle = (e.isTarget || e.species === "켈렌불라레") ? "#2ecc71" : "#ff4757";
+            ctx.fillRect(screenX - 24, screenY - e.height / 2 - 14, (e.hp / e.maxHp) * 48, 4);
+          }
 
           ctx.font = "600 12px sans-serif";
           if (e.species === "켈렌불라레") {
             ctx.fillStyle = e.isBaby ? "#7bed9f" : (e.isOld ? "#ced6e0" : "#2ecc71");
           } else if (e.species === "투구게") {
-            ctx.fillStyle = "#f8c291";
+            ctx.fillStyle = e.stage === "EGG" ? "#74b9ff" : (e.stage === "BABY" ? "#f8c291" : "#ffeaa7");
           } else if (!e.isTarget) {
             ctx.fillStyle = e.chaseState === "CHASING" ? "#ff6b6b" : "#ffa502";
           } else {
             ctx.fillStyle = "#f1f2f6";
           }
-          ctx.fillText(`${e.type}`, screenX - 30, screenY - e.height / 2 - 18);
+          ctx.fillText(`${e.type}`, screenX - 32, screenY - e.height / 2 - 18);
         }
       });
 
-      // 위쪽을 향한 현실적인 나무(갈색 줄기 + 진한 초록색 잎) 렌더링
       drawTrees();
 
-      // 하늘을 나는 하스트수리 가족(아군 & 플레이어)을 나무 위 레이어에 렌더링
       entities.forEach((e) => {
         if (e.species !== "하스트수리") return;
         const screenX = e.x + e.width / 2 - camera.x;
