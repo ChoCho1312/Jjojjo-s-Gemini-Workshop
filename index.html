@@ -331,7 +331,7 @@
         </div>
         <div class="guide-row">
           <span class="guide-badge">투구게 일생</span>
-          <span><b>알(10초·무적) → 새끼(20초) → 성체(60초)</b>로 자라며 해조류를 먹고 모래톱에서 <b>알 20개</b>를 산란해요.</span>
+          <span><b>알(10초·무적) → 새끼(20초) → 성체(60초)</b>로 자라며 해조류를 먹고 모래톱에서 <b>알 5개</b>를 산란해요.</span>
         </div>
         <div class="guide-row">
           <span class="guide-badge">사냥 방법</span>
@@ -370,11 +370,13 @@
     const OCEAN_SAND_WIDTH = 260;
 
     const KELENVOLARE_LIFESPAN = 180000;
-    // 6. 투구게 성체 수명 60초 반영 (알 10초 + 새끼 20초 + 성체 60초 = 총 90초)
+    // 투구게 성체 수명 60초 반영 (알 10초 + 새끼 20초 + 성체 60초 = 총 90초)
     const HORSESHOE_LIFESPAN = 90000;
 
     const MAX_CRYOLOPHOSAURUS = 3;
     const MAX_HATZEGOPTERYX = 3;
+    // 투구게(알 포함) 전체 최대 개체 수 상한선
+    const MAX_HORSESHOE_CRABS = 35;
 
     const FOOD_CHAIN_RANK = {
       "로드리게스솔리테어": 1,
@@ -530,7 +532,6 @@
       trees.sort((a, b) => a.y - b.y);
     }
 
-    // 4. 공격(스페이스바)으로만 먹이를 사냥하여 먹도록 처리
     function triggerClawAttack() {
       if (player.clawCooldown > 0) return;
 
@@ -560,7 +561,6 @@
         const dist = Math.hypot(hitX - eCenterX, hitY - eCenterY);
 
         if (dist < Math.max(e.width, e.height) * 0.55 + 50) {
-          // 투구게나 소형 먹이는 공격 1방에 바로 사냥해 먹음
           if (e.isTarget) {
             e.hp = 0;
           } else {
@@ -617,7 +617,6 @@
         else ageMs = 30000 + Math.random() * 12000;
       }
 
-      // 1. 투구게 사이즈 축소 (새끼 36x22, 성체 58x34, 알 24x24)
       const sizeByStage = {
         "EGG": [24, 24],
         "BABY": [36, 22],
@@ -700,14 +699,10 @@
         spawnSeaweed();
       }
 
-      // 🦀 투구게 초기 자연 개체: 딱 30마리만 생성
+      // 🦀 투구게 초기 자연 개체: 12마리로 축소하여 과밀 방지
       const nearCrabCoords = [
-        [1890, 1420, "♂"],
-        [1915, 1480, "♀"],
-        [1885, 1550, "♂"],
-        [1920, 1620, "♀"],
-        [1895, 1690, "♂"],
-        [1925, 1750, "♀"],
+        [1890, 1480, "♂"],
+        [1920, 1580, "♀"],
         [3240, 1520, "♂"],
         [3280, 1640, "♀"]
       ];
@@ -715,13 +710,13 @@
         spawnHorseshoeCrab(g, "ADULT", cx, cy, 40000);
       });
 
-      for (let i = 0; i < 22; i++) {
+      for (let i = 0; i < 8; i++) {
         const g = i % 2 === 0 ? "♂" : "♀";
-        const st = i < 4 ? "BABY" : "ADULT";
+        const st = i < 3 ? "BABY" : "ADULT";
         spawnHorseshoeCrab(g, st);
       }
 
-      // 🦕 켈렌불라레 초기 자연 개체: 딱 10마리만 생성
+      // 🦕 켈렌불라레 초기 자연 개체: 10마리
       spawnKelenvolare("♀", false, 1380, 1400, 60000);
       spawnKelenvolare("♂", false, 1460, 1440, 75000);
       spawnKelenvolare("♀", true, 1420, 1480, 0);
@@ -1009,6 +1004,12 @@
         if (clawEffects[cIdx].life <= 0) clawEffects.splice(cIdx, 1);
       }
 
+      // 현재 전체 투구게(알 포함) 개체 수 계산
+      let currentCrabCount = 0;
+      for (let k = 0; k < entities.length; k++) {
+        if (entities[k].species === "투구게") currentCrabCount++;
+      }
+
       for (let i = entities.length - 1; i >= 0; i--) {
         const e = entities[i];
         if (!e) continue;
@@ -1020,6 +1021,7 @@
           if (age >= HORSESHOE_LIFESPAN) {
             e.isDead = true;
             entities.splice(i, 1);
+            currentCrabCount--;
             continue;
           }
 
@@ -1053,14 +1055,22 @@
             e.type = `투구게(${e.gender}) 성숙:${Math.floor(e.maturity)}`;
           }
 
-          // 5. 투구게는 물속에서 1.7배 더 빠르게 헤엄침
           if (e.stage !== "EGG") {
             const crabInWater = isWaterArea(e.x, e.y, e.width);
             e.speed = crabInWater ? e.baseSpeed * 1.7 : e.baseSpeed;
-          }
 
-          if (e.stage !== "EGG") {
-            e.hunger = Math.max(0, (e.hunger ?? 85) - 0.7 * dtSec);
+            // 배고픔 감소 및 아사(굶어 죽음) 자연 도태 로직
+            e.hunger = Math.max(0, (e.hunger ?? 85) - 1.2 * dtSec);
+            if (e.hunger <= 0) {
+              e.hp -= 3 * dtSec;
+              if (e.hp <= 0) {
+                e.isDead = true;
+                entities.splice(i, 1);
+                currentCrabCount--;
+                continue;
+              }
+            }
+
             const crabCX = e.x + e.width / 2;
             const crabCY = e.y + e.height / 2;
 
@@ -1074,16 +1084,17 @@
             }
           }
 
-          // 수컷 성체: 모래톱에서 수정액 살포 (배고픔 70 이상 && 성숙도 75 이상)
+          // 수컷 성체: 모래톱에서 수정액 살포 (개체 수 상한선 미만일 때만 활발히 살포)
           if (
             e.gender === "♂" &&
             e.stage === "ADULT" &&
             !e.isDead &&
             (e.hunger || 0) >= 70 &&
             (e.maturity || 0) >= 75 &&
-            isSandbarArea(e.x, e.y, e.width)
+            isSandbarArea(e.x, e.y, e.width) &&
+            currentCrabCount < MAX_HORSESHOE_CRABS
           ) {
-            if (Math.random() < 0.004 && spermZones.length < 15) {
+            if (Math.random() < 0.004 && spermZones.length < 10) {
               spermZones.push({
                 x: e.x + e.width / 2,
                 y: e.y + e.height / 2,
@@ -1093,13 +1104,14 @@
             }
           }
 
-          // 암컷 성체: 성숙도 90 이상 && 모래톱의 수정액 근처 도달 시 알 20개를 낳아 후손을 이어줌
+          // 암컷 성체: 개체 수 상한선 내에서 알 5개씩 산란 (쿨타임 20초)
           if (
             e.gender === "♀" &&
             e.stage === "ADULT" &&
             !e.isDead &&
             (e.maturity || 0) >= 90 &&
-            (now - (e.lastLayTime || 0) > 12000)
+            (now - (e.lastLayTime || 0) > 20000) &&
+            currentCrabCount < MAX_HORSESHOE_CRABS
           ) {
             for (let s = spermZones.length - 1; s >= 0; s--) {
               const sz = spermZones[s];
@@ -1107,9 +1119,10 @@
               if (sDist <= sz.radius + 45) {
                 e.lastLayTime = now;
                 spermZones.splice(s, 1);
-                for (let c = 0; c < 20; c++) {
-                  const spreadAngle = (Math.PI * 2 * c) / 20 + Math.random() * 0.2;
-                  const spreadDist = 10 + Math.random() * 65;
+                const eggCount = 5;
+                for (let c = 0; c < eggCount; c++) {
+                  const spreadAngle = (Math.PI * 2 * c) / eggCount + Math.random() * 0.2;
+                  const spreadDist = 10 + Math.random() * 45;
                   spawnHorseshoeCrab(
                     Math.random() < 0.5 ? "♀" : "♂",
                     "EGG",
@@ -1117,6 +1130,7 @@
                     sz.y + Math.sin(spreadAngle) * spreadDist,
                     0
                   );
+                  currentCrabCount++;
                 }
                 break;
               }
@@ -1249,7 +1263,14 @@
 
         // 암컷 투구게(성숙도 90 이상)의 수정액 탐색
         let seekSpermZone = null;
-        if (e.species === "투구게" && e.gender === "♀" && e.stage === "ADULT" && (e.maturity || 0) >= 90 && spermZones.length > 0) {
+        if (
+          e.species === "투구게" &&
+          e.gender === "♀" &&
+          e.stage === "ADULT" &&
+          (e.maturity || 0) >= 90 &&
+          currentCrabCount < MAX_HORSESHOE_CRABS &&
+          spermZones.length > 0
+        ) {
           let bestDist = 480;
           spermZones.forEach(sz => {
             const d = Math.hypot(sz.x - eCenterX, sz.y - eCenterY);
@@ -1370,16 +1391,17 @@
             const vRank = FOOD_CHAIN_RANK[victim.species] || 0;
 
             if (vRank > 0 && vRank < myRank && checkCollision(e, victim)) {
-              // 5. 히네리아와 이크티오스테가가 투구게를 만났을 때는 즉사시키지 않고 초당 10씩 체력 감소
               if ((e.species === "히네리아" || e.species === "이크티오스테가") && victim.species === "투구게") {
                 victim.hp -= 10 * dtSec;
                 if (victim.hp <= 0) {
                   e.hp = Math.min(e.maxHp, e.hp + 20);
                   entities.splice(j, 1);
+                  currentCrabCount--;
                   if (j < i) i--;
                 }
               } else {
                 e.hp = Math.min(e.maxHp, e.hp + 20);
+                if (victim.species === "투구게") currentCrabCount--;
                 entities.splice(j, 1);
                 if (j < i) i--;
               }
@@ -1388,7 +1410,6 @@
           }
         }
 
-        // 4. 플레이어는 먹이(isTarget)와 그냥 부딪혀서는 먹지 않음(발톱 공격으로만 먹음). 적대 포식자 피해만 적용
         if (checkCollision(player, e)) {
           if (e.species === "투구게" && e.stage === "EGG") continue;
 
@@ -1465,7 +1486,6 @@
       });
     }
 
-    // 3. 수정액이 모래톱 위에서도 선명하게 보이도록 강화
     function drawSpermZones() {
       const pulse = Math.sin(Date.now() / 350) * 4;
       spermZones.forEach((sz) => {
@@ -1570,7 +1590,6 @@
       });
     }
 
-    // 2. 투구게의 알이 모래톱에서도 뚜렷하게 보이도록 개선
     function drawHorseshoeCrab(w, h, stage = "ADULT") {
       if (stage === "EGG") {
         ctx.fillStyle = "rgba(116, 185, 255, 0.35)";
