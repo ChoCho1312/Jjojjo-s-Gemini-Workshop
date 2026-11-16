@@ -331,11 +331,11 @@
         </div>
         <div class="guide-row">
           <span class="guide-badge">투구게 일생</span>
-          <span><b>알(10초·무적) → 새끼(20초) → 성체(30초)</b>로 자라며 해조류를 먹고 넓은 모래톱에서 <b>알 20개</b>를 산란해요.</span>
+          <span><b>알(10초·무적) → 새끼(20초) → 성체(60초)</b>로 자라며 해조류를 먹고 모래톱에서 <b>알 20개</b>를 산란해요.</span>
         </div>
         <div class="guide-row">
-          <span class="guide-badge">사냥·생태계</span>
-          <span><b>투구게(체력+20)</b>는 부딪혀 먹고, <b>켈렌불라레</b>는 <b>스페이스바</b>로 사냥해요.</span>
+          <span class="guide-badge">사냥 방법</span>
+          <span>스쳐 지나가면 먹지 않아요! 먹이를 사냥하려면 반드시 <b>스페이스바(발톱 공격)</b>를 누르세요.</span>
         </div>
       </div>
 
@@ -365,12 +365,13 @@
 
     const RIVER_START = 1950;
     const RIVER_END = 2450;
-    const RIVER_SAND_WIDTH = 95;   // 강변 양옆 모래톱 가로 폭 확장
+    const RIVER_SAND_WIDTH = 95;
     const OCEAN_START = 3400;
-    const OCEAN_SAND_WIDTH = 260;  // 바닷가 모래톱 가로 폭 대폭 확장 (260px)
+    const OCEAN_SAND_WIDTH = 260;
 
     const KELENVOLARE_LIFESPAN = 180000;
-    const HORSESHOE_LIFESPAN = 60000;
+    // 6. 투구게 성체 수명 60초 반영 (알 10초 + 새끼 20초 + 성체 60초 = 총 90초)
+    const HORSESHOE_LIFESPAN = 90000;
 
     const MAX_CRYOLOPHOSAURUS = 3;
     const MAX_HATZEGOPTERYX = 3;
@@ -529,6 +530,7 @@
       trees.sort((a, b) => a.y - b.y);
     }
 
+    // 4. 공격(스페이스바)으로만 먹이를 사냥하여 먹도록 처리
     function triggerClawAttack() {
       if (player.clawCooldown > 0) return;
 
@@ -558,15 +560,20 @@
         const dist = Math.hypot(hitX - eCenterX, hitY - eCenterY);
 
         if (dist < Math.max(e.width, e.height) * 0.55 + 50) {
-          e.hp -= 45;
-          e.x += Math.cos(player.angle) * 35;
-          e.y += Math.sin(player.angle) * 35;
+          // 투구게나 소형 먹이는 공격 1방에 바로 사냥해 먹음
+          if (e.isTarget) {
+            e.hp = 0;
+          } else {
+            e.hp -= 45;
+            e.x += Math.cos(player.angle) * 35;
+            e.y += Math.sin(player.angle) * 35;
 
-          if (e.species === "켈렌불라레") {
-            e.fleeUntil = Date.now() + 4000;
-          } else if (!e.isTarget) {
-            e.chaseState = "CHASING";
-            e.chaseTimer = Date.now();
+            if (e.species === "켈렌불라레") {
+              e.fleeUntil = Date.now() + 4000;
+            } else {
+              e.chaseState = "CHASING";
+              e.chaseTimer = Date.now();
+            }
           }
 
           if (e.hp <= 0) {
@@ -607,13 +614,14 @@
       if (ageMs === null) {
         if (stage === "EGG") ageMs = 0;
         else if (stage === "BABY") ageMs = 10000;
-        else ageMs = 30000 + Math.random() * 8000;
+        else ageMs = 30000 + Math.random() * 12000;
       }
 
+      // 1. 투구게 사이즈 축소 (새끼 36x22, 성체 58x34, 알 24x24)
       const sizeByStage = {
-        "EGG": [32, 32],
-        "BABY": [54, 32],
-        "ADULT": [92, 52]
+        "EGG": [24, 24],
+        "BABY": [36, 22],
+        "ADULT": [58, 34]
       };
       const [entityW, entityH] = sizeByStage[stage];
 
@@ -630,7 +638,7 @@
         spawnY = 160 + Math.random() * (MAP_HEIGHT - 320);
       }
 
-      const baseSpeed = stage === "EGG" ? 0 : (stage === "BABY" ? 1.0 : 1.35 + Math.random() * 0.45);
+      const baseSpeed = stage === "EGG" ? 0 : (stage === "BABY" ? 1.15 : 1.5 + Math.random() * 0.45);
       const initialMaturity = stage === "ADULT" ? Math.min(100, ((ageMs - 30000) / 1000) * 10) : 0;
 
       entities.push({
@@ -640,12 +648,12 @@
         speed: baseSpeed,
         width: entityW,
         height: entityH,
-        type: stage === "EGG" ? "투구게(알·무적)" : (stage === "BABY" ? `투구게(${crabGender}) 새끼` : `투구게(${crabGender})`),
+        type: stage === "EGG" ? "투구게(알)" : (stage === "BABY" ? `투구게(${crabGender}) 새끼` : `투구게(${crabGender})`),
         species: "투구게",
         gender: crabGender,
         stage: stage,
         birthTime: Date.now() - ageMs,
-        hunger: 80 + Math.random() * 15,
+        hunger: 85 + Math.random() * 15,
         maturity: initialMaturity,
         isDead: false,
         lastLayTime: 0,
@@ -654,8 +662,8 @@
         chaseState: "IDLE",
         chaseTimer: 0,
         isResting: false,
-        hp: stage === "BABY" ? 25 : 40,
-        maxHp: stage === "BABY" ? 25 : 40
+        hp: stage === "BABY" ? 30 : 50,
+        maxHp: stage === "BABY" ? 30 : 50
       });
     }
 
@@ -704,7 +712,7 @@
         [3280, 1640, "♀"]
       ];
       nearCrabCoords.forEach(([cx, cy, g]) => {
-        spawnHorseshoeCrab(g, "ADULT", cx, cy, 37000);
+        spawnHorseshoeCrab(g, "ADULT", cx, cy, 40000);
       });
 
       for (let i = 0; i < 22; i++) {
@@ -991,7 +999,7 @@
       updateStatusBars();
 
       for (let sIdx = spermZones.length - 1; sIdx >= 0; sIdx--) {
-        if (now - spermZones[sIdx].createdAt > 45000) {
+        if (now - spermZones[sIdx].createdAt > 50000) {
           spermZones.splice(sIdx, 1);
         }
       }
@@ -1005,7 +1013,7 @@
         const e = entities[i];
         if (!e) continue;
 
-        // 🦀 투구게 일생 주기 (알 10초 무적 -> 새끼 20초 -> 성체 30초, 총 60초)
+        // 🦀 투구게 일생 주기: 알(10초 무적) -> 새끼(20초) -> 성체(60초), 총 90초
         if (e.species === "투구게") {
           const age = now - e.birthTime;
 
@@ -1017,42 +1025,48 @@
 
           if (age < 10000) {
             e.stage = "EGG";
-            e.width = 32;
-            e.height = 32;
+            e.width = 24;
+            e.height = 24;
             e.speed = 0;
-            e.type = "투구게(알·무적)";
+            e.type = "🥚투구게 알";
           } else if (age < 30000) {
             if (e.stage !== "BABY") {
               e.stage = "BABY";
-              e.width = 54;
-              e.height = 32;
-              e.speed = 1.0;
-              e.hp = 25;
-              e.maxHp = 25;
+              e.width = 36;
+              e.height = 22;
+              e.baseSpeed = 1.15;
+              e.hp = 30;
+              e.maxHp = 30;
             }
             e.type = `투구게(${e.gender}) 새끼`;
           } else {
             if (e.stage !== "ADULT") {
               e.stage = "ADULT";
-              e.width = 92;
-              e.height = 52;
-              e.speed = 1.4;
-              e.hp = 40;
-              e.maxHp = 40;
+              e.width = 58;
+              e.height = 34;
+              e.baseSpeed = 1.5;
+              e.hp = 50;
+              e.maxHp = 50;
               e.maturity = 0;
             }
             e.maturity = Math.min(100, (e.maturity || 0) + 10 * dtSec);
             e.type = `투구게(${e.gender}) 성숙:${Math.floor(e.maturity)}`;
           }
 
+          // 5. 투구게는 물속에서 1.7배 더 빠르게 헤엄침
           if (e.stage !== "EGG") {
-            e.hunger = Math.max(0, (e.hunger ?? 80) - 0.8 * dtSec);
+            const crabInWater = isWaterArea(e.x, e.y, e.width);
+            e.speed = crabInWater ? e.baseSpeed * 1.7 : e.baseSpeed;
+          }
+
+          if (e.stage !== "EGG") {
+            e.hunger = Math.max(0, (e.hunger ?? 85) - 0.7 * dtSec);
             const crabCX = e.x + e.width / 2;
             const crabCY = e.y + e.height / 2;
 
             for (let swIdx = seaweeds.length - 1; swIdx >= 0; swIdx--) {
               const sw = seaweeds[swIdx];
-              if (Math.hypot(crabCX - sw.x, crabCY - sw.y) < e.width * 0.48 + sw.radius) {
+              if (Math.hypot(crabCX - sw.x, crabCY - sw.y) < e.width * 0.55 + sw.radius) {
                 e.hunger = Math.min(100, (e.hunger || 0) + 30);
                 seaweeds.splice(swIdx, 1);
                 break;
@@ -1060,7 +1074,7 @@
             }
           }
 
-          // 수컷 성체: 모래톱에서 1/10000 확률 && 배고픔 70 이상 && 새끼/알 아님 && 사체 아님 && 성숙도 75 이상일 때 수정액 살포
+          // 수컷 성체: 모래톱에서 수정액 살포 (배고픔 70 이상 && 성숙도 75 이상)
           if (
             e.gender === "♂" &&
             e.stage === "ADULT" &&
@@ -1069,7 +1083,7 @@
             (e.maturity || 0) >= 75 &&
             isSandbarArea(e.x, e.y, e.width)
           ) {
-            if (Math.random() < 0.0001) {
+            if (Math.random() < 0.004 && spermZones.length < 15) {
               spermZones.push({
                 x: e.x + e.width / 2,
                 y: e.y + e.height / 2,
@@ -1331,7 +1345,6 @@
             e.angle = Math.PI - e.angle + (Math.random() - 0.5) * 0.4;
           }
         } else if (e.species === "투구게") {
-          // 넓어진 강변/해변 모래톱 전역에서 자유롭게 활동 가능
           const onWaterOrSand = inWater || isSandbarArea(e.x, e.y, e.width);
           if (!onWaterOrSand) {
             e.x = prevX;
@@ -1357,31 +1370,29 @@
             const vRank = FOOD_CHAIN_RANK[victim.species] || 0;
 
             if (vRank > 0 && vRank < myRank && checkCollision(e, victim)) {
-              e.hp = Math.min(e.maxHp, e.hp + 20);
-              entities.splice(j, 1);
-              if (j < i) i--;
+              // 5. 히네리아와 이크티오스테가가 투구게를 만났을 때는 즉사시키지 않고 초당 10씩 체력 감소
+              if ((e.species === "히네리아" || e.species === "이크티오스테가") && victim.species === "투구게") {
+                victim.hp -= 10 * dtSec;
+                if (victim.hp <= 0) {
+                  e.hp = Math.min(e.maxHp, e.hp + 20);
+                  entities.splice(j, 1);
+                  if (j < i) i--;
+                }
+              } else {
+                e.hp = Math.min(e.maxHp, e.hp + 20);
+                entities.splice(j, 1);
+                if (j < i) i--;
+              }
               break;
             }
           }
         }
 
-        // 플레이어와 접촉 판정
+        // 4. 플레이어는 먹이(isTarget)와 그냥 부딪혀서는 먹지 않음(발톱 공격으로만 먹음). 적대 포식자 피해만 적용
         if (checkCollision(player, e)) {
           if (e.species === "투구게" && e.stage === "EGG") continue;
 
-          if (e.isTarget) {
-            if (e.species === "투구게") {
-              score += 2;
-              playerHp = Math.min(MAX_HP, playerHp + 20);
-              playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 20);
-            } else {
-              score += 1;
-              playerHp = Math.min(MAX_HP, playerHp + 15);
-              playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 25);
-            }
-            scoreText.innerText = score;
-            entities.splice(i, 1);
-          } else if (e.species !== "하스트수리" && e.species !== "켈렌불라레") {
+          if (!e.isTarget && e.species !== "하스트수리" && e.species !== "켈렌불라레") {
             if (player.hitCooldown <= 0 && player.clawTimer <= 0) {
               playerHp = Math.max(0, playerHp - 15);
               player.hitCooldown = 30;
@@ -1418,7 +1429,6 @@
         ctx.fill();
       }
 
-      // 넓어진 강변 모래톱 (양옆 95px씩)
       ctx.fillStyle = "#d9b97e";
       ctx.fillRect(RIVER_START - RIVER_SAND_WIDTH - camera.x, 0 - camera.y, (RIVER_END - RIVER_START) + RIVER_SAND_WIDTH * 2, MAP_HEIGHT);
 
@@ -1429,7 +1439,6 @@
       ctx.fillStyle = riverGrad;
       ctx.fillRect(RIVER_START - camera.x, 0 - camera.y, RIVER_END - RIVER_START, MAP_HEIGHT);
 
-      // 대폭 넓어진 바닷가 모래톱 (가로 260px)
       ctx.fillStyle = "#d9b97e";
       ctx.fillRect(OCEAN_START - OCEAN_SAND_WIDTH - camera.x, 0 - camera.y, OCEAN_SAND_WIDTH, MAP_HEIGHT);
     }
@@ -1456,20 +1465,38 @@
       });
     }
 
+    // 3. 수정액이 모래톱 위에서도 선명하게 보이도록 강화
     function drawSpermZones() {
+      const pulse = Math.sin(Date.now() / 350) * 4;
       spermZones.forEach((sz) => {
         const sx = sz.x - camera.x;
         const sy = sz.y - camera.y;
-        if (sx < -100 || sx > camera.width + 100 || sy < -100 || sy > camera.height + 100) return;
+        if (sx < -120 || sx > camera.width + 120 || sy < -120 || sy > camera.height + 120) return;
 
-        const grad = ctx.createRadialGradient(sx, sy, 4, sx, sy, sz.radius);
-        grad.addColorStop(0, "rgba(255, 255, 255, 0.72)");
-        grad.addColorStop(0.5, "rgba(235, 248, 255, 0.35)");
-        grad.addColorStop(1, "rgba(255, 255, 255, 0)");
+        const r = sz.radius + pulse;
+        const grad = ctx.createRadialGradient(sx, sy, 5, sx, sy, r);
+        grad.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+        grad.addColorStop(0.55, "rgba(215, 245, 255, 0.65)");
+        grad.addColorStop(1, "rgba(180, 235, 255, 0)");
         ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.arc(sx, sy, sz.radius, 0, Math.PI * 2);
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
         ctx.fill();
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.arc(sx, sy, r * 0.72, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.font = "700 12px sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.65)";
+        ctx.lineWidth = 3;
+        ctx.strokeText("✨수정액", sx - 24, sy - r * 0.5);
+        ctx.fillText("✨수정액", sx - 24, sy - r * 0.5);
       });
     }
 
@@ -1543,26 +1570,32 @@
       });
     }
 
+    // 2. 투구게의 알이 모래톱에서도 뚜렷하게 보이도록 개선
     function drawHorseshoeCrab(w, h, stage = "ADULT") {
       if (stage === "EGG") {
-        ctx.strokeStyle = "rgba(116, 185, 255, 0.85)";
-        ctx.lineWidth = 2;
+        ctx.fillStyle = "rgba(116, 185, 255, 0.35)";
+        ctx.strokeStyle = "#0984e3";
+        ctx.lineWidth = 2.2;
         ctx.beginPath();
-        ctx.arc(0, 0, w * 0.48, 0, Math.PI * 2);
+        ctx.arc(0, 0, w * 0.56, 0, Math.PI * 2);
+        ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = "#e8d5b7";
-        ctx.beginPath();
-        ctx.arc(-4, -3, 5.5, 0, Math.PI * 2);
-        ctx.arc(4, -2, 5.5, 0, Math.PI * 2);
-        ctx.arc(0, 4, 5.5, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#2d3436";
+        ctx.lineWidth = 1.2;
+        [[-4, -3], [4, -2], [0, 4]].forEach(([ox, oy]) => {
+          ctx.beginPath();
+          ctx.arc(ox, oy, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        });
         return;
       }
 
       ctx.fillStyle = stage === "BABY" ? "#d6b892" : "#c29b6e";
       ctx.strokeStyle = "#5c4023";
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
       ctx.moveTo(-w * 0.12, -h * 0.06);
       ctx.lineTo(-w * 0.58, 0);
@@ -1573,7 +1606,7 @@
 
       ctx.fillStyle = stage === "BABY" ? "#e3c8a4" : "#d4af82";
       ctx.strokeStyle = "#5c4023";
-      ctx.lineWidth = 1.7;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(w * 0.06, -h * 0.35);
       ctx.lineTo(-w * 0.16, -h * 0.18);
@@ -1584,7 +1617,7 @@
       ctx.stroke();
 
       ctx.strokeStyle = "#7a5630";
-      ctx.lineWidth = 1.1;
+      ctx.lineWidth = 1.0;
       ctx.beginPath();
       ctx.moveTo(-w * 0.05, -h * 0.25);
       ctx.lineTo(-w * 0.05, h * 0.25);
@@ -1592,7 +1625,7 @@
 
       ctx.fillStyle = stage === "BABY" ? "#eed7b8" : "#e3c298";
       ctx.strokeStyle = "#5c4023";
-      ctx.lineWidth = 1.9;
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.moveTo(w * 0.00, -h * 0.45);
       ctx.lineTo(w * 0.08, -h * 0.47);
@@ -1607,8 +1640,8 @@
 
       ctx.fillStyle = "#4a3319";
       ctx.beginPath();
-      ctx.arc(w * 0.27, -h * 0.22, stage === "BABY" ? 1.8 : 2.5, 0, Math.PI * 2);
-      ctx.arc(w * 0.27, h * 0.22, stage === "BABY" ? 1.8 : 2.5, 0, Math.PI * 2);
+      ctx.arc(w * 0.27, -h * 0.22, stage === "BABY" ? 1.5 : 2.0, 0, Math.PI * 2);
+      ctx.arc(w * 0.27, h * 0.22, stage === "BABY" ? 1.5 : 2.0, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -2034,7 +2067,7 @@
           if (e.species === "켈렌불라레") {
             ctx.fillStyle = e.isBaby ? "#7bed9f" : (e.isOld ? "#ced6e0" : "#2ecc71");
           } else if (e.species === "투구게") {
-            ctx.fillStyle = e.stage === "EGG" ? "#74b9ff" : (e.stage === "BABY" ? "#f8c291" : "#ffeaa7");
+            ctx.fillStyle = e.stage === "EGG" ? "#0984e3" : (e.stage === "BABY" ? "#f8c291" : "#ffeaa7");
           } else if (!e.isTarget) {
             ctx.fillStyle = e.chaseState === "CHASING" ? "#ff6b6b" : "#ffa502";
           } else {
