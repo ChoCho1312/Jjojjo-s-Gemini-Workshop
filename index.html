@@ -331,11 +331,11 @@
         </div>
         <div class="guide-row">
           <span class="guide-badge">투구게 일생</span>
-          <span>물속에서 해조류를 먹고 자라 <b>성숙해지면 모래톱으로 올라와</b> 수정액을 뿌리고 <b>알 5개</b>를 산란해요.</span>
+          <span>강과 바다에서 해조류를 먹고 자라 <b>성숙해지면 모래톱으로 올라와</b> 수정액을 뿌리고 <b>알 5개</b>를 산란해요.</span>
         </div>
         <div class="guide-row">
           <span class="guide-badge">틸로사우르스</span>
-          <span>천적이 없는 거대 해양 파충류로 <b>오로지 투구게만 사냥</b>하며, 가끔 뭍으로도 올라옵니다.</span>
+          <span>바다에서만 살아가는 <b>죽지 않는 최상위 해양 포식자</b>로, 오로지 바다의 투구게만 사냥해요.</span>
         </div>
         <div class="guide-row">
           <span class="guide-badge">사냥 방법</span>
@@ -374,12 +374,13 @@
     const OCEAN_SAND_WIDTH = 260;
 
     const KELENVOLARE_LIFESPAN = 180000;
-    const HORSESHOE_LIFESPAN = 90000;
+    const HORSESHOE_LIFESPAN = 130000;
 
     const MAX_CRYOLOPHOSAURUS = 3;
     const MAX_HATZEGOPTERYX = 3;
-    const MAX_TYLOSAURUS = 3;
-    const MAX_HORSESHOE_CRABS = 35;
+    const MAX_TYLOSAURUS = 2;
+    const MIN_HORSESHOE_CRABS = 14;
+    const MAX_HORSESHOE_CRABS = 40;
 
     const FOOD_CHAIN_RANK = {
       "로드리게스솔리테어": 1,
@@ -481,18 +482,16 @@
       return (px + width >= OCEAN_START);
     }
 
+    function isStrictlyInOcean(px, width = 0) {
+      return (px >= OCEAN_START + 8 && px + width <= MAP_WIDTH - 8);
+    }
+
     function isRiverArea(px, py, width = 0) {
       return (px + width >= RIVER_START && px <= RIVER_END);
     }
 
     function isWaterArea(px, py, width = 0) {
       return isOceanArea(px, py, width) || isRiverArea(px, py, width);
-    }
-
-    function isStrictlyInWater(px, width) {
-      const inRiver = (px >= RIVER_START + 4 && px + width <= RIVER_END - 4);
-      const inOcean = (px >= OCEAN_START + 4 && px + width <= MAP_WIDTH);
-      return inRiver || inOcean;
     }
 
     function isSandbarArea(px, py, width = 0) {
@@ -503,7 +502,6 @@
       return inWestRiverSand || inEastRiverSand || inOceanSand;
     }
 
-    // 가장 가까운 모래톱 중심 X좌표 반환 (투구게 산란 이동용)
     function getNearestSandbarX(centerX) {
       const westRiverSandX = RIVER_START - RIVER_SAND_WIDTH / 2;
       const eastRiverSandX = RIVER_END + RIVER_SAND_WIDTH / 2;
@@ -518,7 +516,6 @@
       return oceanSandX;
     }
 
-    // 가장 가까운 물속 중심 X좌표 반환 (부화한 새끼 투구게 입수용)
     function getNearestWaterX(centerX) {
       const riverCenterX = (RIVER_START + RIVER_END) / 2;
       const oceanEntryX = OCEAN_START + 120;
@@ -586,6 +583,8 @@
       for (let i = entities.length - 1; i >= 0; i--) {
         const e = entities[i];
         if (e.species === "하스트수리") continue;
+        // 틸로사우르스는 죽지 않는 무적 생물이므로 피해를 입지 않음
+        if (e.species === "틸로사우르스" || e.isImmortal) continue;
         if (e.species === "투구게" && e.stage === "EGG") continue;
 
         const eCenterX = e.x + e.width / 2;
@@ -602,7 +601,7 @@
 
             if (e.species === "켈렌불라레") {
               e.fleeUntil = Date.now() + 4000;
-            } else if (e.species !== "틸로사우르스") {
+            } else {
               e.chaseState = "CHASING";
               e.chaseTimer = Date.now();
             }
@@ -621,8 +620,6 @@
               score += 1;
               playerHp = Math.min(MAX_HP, playerHp + 15);
               playerOxygen = Math.min(MAX_OXYGEN, playerOxygen + 25);
-            } else if (e.species === "틸로사우르스") {
-              score += 15;
             } else {
               score += 5;
             }
@@ -670,7 +667,7 @@
         spawnY = 160 + Math.random() * (MAP_HEIGHT - 320);
       }
 
-      const baseSpeed = stage === "EGG" ? 0 : (stage === "BABY" ? 1.15 : 1.5 + Math.random() * 0.45);
+      const baseSpeed = stage === "EGG" ? 0 : (stage === "BABY" ? 1.25 : 1.65 + Math.random() * 0.45);
       const initialMaturity = stage === "ADULT" ? Math.min(100, ((ageMs - 30000) / 1000) * 10) : 0;
 
       entities.push({
@@ -680,12 +677,12 @@
         speed: baseSpeed,
         width: entityW,
         height: entityH,
-        type: stage === "EGG" ? "투구게(알)" : (stage === "BABY" ? `투구게(${crabGender}) 새끼` : `투구게(${crabGender})`),
+        type: stage === "EGG" ? "🥚투구게 알" : (stage === "BABY" ? `투구게(${crabGender}) 새끼` : `투구게(${crabGender})`),
         species: "투구게",
         gender: crabGender,
         stage: stage,
         birthTime: Date.now() - ageMs,
-        hunger: 85 + Math.random() * 15,
+        hunger: 90 + Math.random() * 10,
         maturity: initialMaturity,
         isDead: false,
         lastLayTime: 0,
@@ -706,32 +703,31 @@
       let spawnY = customY;
 
       if (spawnX === null || spawnY === null) {
-        if (Math.random() < 0.7) {
-          spawnX = OCEAN_START + 80 + Math.random() * (MAP_WIDTH - OCEAN_START - entityW - 150);
-        } else {
-          spawnX = RIVER_START + 40 + Math.random() * (RIVER_END - RIVER_START - entityW - 80);
-        }
+        // 오직 바다 영역(OCEAN_START + 40 이상)에서만 스폰
+        spawnX = OCEAN_START + 60 + Math.random() * (MAP_WIDTH - OCEAN_START - entityW - 120);
         spawnY = 250 + Math.random() * (MAP_HEIGHT - 500);
       }
+
+      spawnX = Math.max(OCEAN_START + 20, Math.min(MAP_WIDTH - entityW - 20, spawnX));
 
       entities.push({
         x: spawnX,
         y: spawnY,
-        baseSpeed: 2.6,
-        speed: 2.6,
+        baseSpeed: 2.35,
+        speed: 2.35,
         width: entityW,
         height: entityH,
         type: "틸로사우르스",
         species: "틸로사우르스",
+        isImmortal: true,
         isTarget: false,
         angle: Math.random() * Math.PI * 2,
         chaseState: "IDLE",
         chaseTimer: 0,
+        huntCooldownUntil: 0,
         isResting: false,
-        landVisitUntil: 0,
-        nextLandCheck: Date.now() + 8000 + Math.random() * 10000,
-        hp: 180,
-        maxHp: 180
+        hp: 99999,
+        maxHp: 99999
       });
     }
 
@@ -764,24 +760,28 @@
       spawnHaastEagleFemale();
       spawnHaastEagleBaby(Math.PI);
 
-      for (let i = 0; i < 80; i++) {
+      for (let i = 0; i < 85; i++) {
         spawnSeaweed();
       }
 
-      // 🦀 투구게 초기 자연 개체
+      // 🦀 투구게 초기 개체 풍부하게 배치 (강과 바다 양쪽에 암·수 배치)
       const nearCrabCoords = [
         [2050, 1480, "♂"],
         [2250, 1580, "♀"],
+        [2120, 1750, "♂"],
+        [2320, 1850, "♀"],
         [3550, 1520, "♂"],
-        [3750, 1640, "♀"]
+        [3750, 1640, "♀"],
+        [3900, 1900, "♂"],
+        [4100, 2100, "♀"]
       ];
       nearCrabCoords.forEach(([cx, cy, g]) => {
         spawnHorseshoeCrab(g, "ADULT", cx, cy, 40000);
       });
 
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 12; i++) {
         const g = i % 2 === 0 ? "♂" : "♀";
-        const st = i < 3 ? "BABY" : "ADULT";
+        const st = i < 4 ? "BABY" : "ADULT";
         spawnHorseshoeCrab(g, st);
       }
 
@@ -799,9 +799,9 @@
       spawnSpecificPredator("크리욜로포사우르스", 1180, 1350);
       spawnSpecificPredator("하체고프테릭스", 1120, 1820);
 
-      // 🐊 틸로사우르스 초기 배치
-      spawnTylosaurus(3650, 1580);
-      spawnTylosaurus(2120, 1750);
+      // 🐊 틸로사우르스 초기 배치 (오직 바다 속에만 배치)
+      spawnTylosaurus(3850, 1450);
+      spawnTylosaurus(4350, 2150);
 
       for (let i = 0; i < 22; i++) spawnEntity(true);
 
@@ -814,7 +814,24 @@
           spawnSeaweed();
         }
 
-        if (entities.length < 72) spawnEntity(false);
+        // 투구게 개체수 확인 후 부족하면 강과 바다에서 즉시 보충하여 절대 멸종하지 않게 유지
+        let crabCount = 0;
+        let maleCount = 0;
+        let femaleCount = 0;
+        for (let i = 0; i < entities.length; i++) {
+          if (entities[i].species === "투구게") {
+            crabCount++;
+            if (entities[i].gender === "♂") maleCount++;
+            if (entities[i].gender === "♀") femaleCount++;
+          }
+        }
+
+        if (crabCount < MIN_HORSESHOE_CRABS) {
+          const needGender = maleCount <= femaleCount ? "♂" : "♀";
+          spawnHorseshoeCrab(needGender, "ADULT", null, null, 38000);
+        }
+
+        if (entities.length < 75) spawnEntity(false);
       }, 900);
     }
 
@@ -1093,7 +1110,12 @@
         const e = entities[i];
         if (!e) continue;
 
-        // 🦀 투구게 일생 주기: 평소 물속에 살다가 번식 준비가 되면 모래톱으로 올라와 번식
+        // 틸로사우르스는 절대 죽지 않음
+        if (e.species === "틸로사우르스" || e.isImmortal) {
+          e.hp = e.maxHp;
+        }
+
+        // 🦀 투구게 일생 주기
         if (e.species === "투구게") {
           const age = now - e.birthTime;
 
@@ -1115,7 +1137,7 @@
               e.stage = "BABY";
               e.width = 36;
               e.height = 22;
-              e.baseSpeed = 1.15;
+              e.baseSpeed = 1.25;
               e.hp = 30;
               e.maxHp = 30;
             }
@@ -1125,7 +1147,7 @@
               e.stage = "ADULT";
               e.width = 58;
               e.height = 34;
-              e.baseSpeed = 1.5;
+              e.baseSpeed = 1.65;
               e.hp = 50;
               e.maxHp = 50;
               e.maturity = 0;
@@ -1136,11 +1158,11 @@
 
           if (e.stage !== "EGG") {
             const crabInWater = isWaterArea(e.x, e.y, e.width);
-            e.speed = crabInWater ? e.baseSpeed * 1.65 : e.baseSpeed * 0.9;
+            e.speed = crabInWater ? e.baseSpeed * 1.65 : e.baseSpeed * 0.95;
 
-            e.hunger = Math.max(0, (e.hunger ?? 85) - 1.2 * dtSec);
+            e.hunger = Math.max(0, (e.hunger ?? 90) - 0.8 * dtSec);
             if (e.hunger <= 0) {
-              e.hp -= 3 * dtSec;
+              e.hp -= 2 * dtSec;
               if (e.hp <= 0) {
                 e.isDead = true;
                 entities.splice(i, 1);
@@ -1162,17 +1184,17 @@
             }
           }
 
-          // 수컷 성체: 모래톱에 올라와 수정액 살포 (배고픔 70 이상 && 성숙도 75 이상)
+          // 수컷 성체: 모래톱에 올라와 수정액 살포
           if (
             e.gender === "♂" &&
             e.stage === "ADULT" &&
             !e.isDead &&
-            (e.hunger || 0) >= 70 &&
+            (e.hunger || 0) >= 65 &&
             (e.maturity || 0) >= 75 &&
             isSandbarArea(e.x, e.y, e.width) &&
             currentCrabCount < MAX_HORSESHOE_CRABS
           ) {
-            if (Math.random() < 0.008 && spermZones.length < 12) {
+            if (Math.random() < 0.012 && spermZones.length < 14) {
               spermZones.push({
                 x: e.x + e.width / 2,
                 y: e.y + e.height / 2,
@@ -1182,13 +1204,13 @@
             }
           }
 
-          // 암컷 성체: 모래톱의 수정액 근처 도달 시 알 5개 산란 (쿨타임 20초)
+          // 암컷 성체: 모래톱의 수정액 근처 도달 시 알 5개 산란
           if (
             e.gender === "♀" &&
             e.stage === "ADULT" &&
             !e.isDead &&
-            (e.maturity || 0) >= 90 &&
-            (now - (e.lastLayTime || 0) > 20000) &&
+            (e.maturity || 0) >= 85 &&
+            (now - (e.lastLayTime || 0) > 18000) &&
             currentCrabCount < MAX_HORSESHOE_CRABS
           ) {
             for (let s = spermZones.length - 1; s >= 0; s--) {
@@ -1251,7 +1273,7 @@
         const dy = playerCenterY - eCenterY;
         const distance = Math.hypot(dx, dy);
 
-        // 아군 하스트수리 (천적이 없는 틸로사우르스는 공격하지 않음)
+        // 아군 하스트수리 (무적인 틸로사우르스는 공격하지 않음)
         if (e.species === "하스트수리" && e !== player) {
           e.orbitAngle = (e.orbitAngle || 0) + (e.orbitSpeed || 0.03);
 
@@ -1272,6 +1294,7 @@
                 other.species !== "하스트수리" &&
                 other.species !== "켈렌불라레" &&
                 other.species !== "틸로사우르스" &&
+                !other.isImmortal &&
                 other.isTarget === false
               ) {
                 if (checkCollision(e, other)) {
@@ -1289,21 +1312,9 @@
           continue;
         }
 
-        // 틸로사우르스 상륙 타이머 관리
+        // 틸로사우르스는 오직 바다에서만 수영
         if (e.species === "틸로사우르스") {
-          const currentlyInWater = isWaterArea(e.x, e.y, e.width);
-          e.speed = currentlyInWater ? e.baseSpeed * 1.25 : e.baseSpeed * 0.72;
-
-          if (now >= (e.nextLandCheck || 0)) {
-            e.nextLandCheck = now + 18000 + Math.random() * 14000;
-            if (Math.random() < 0.35) {
-              e.landVisitUntil = now + 5500;
-              e.type = "틸로사우르스(상륙)";
-            }
-          }
-          if (now >= (e.landVisitUntil || 0) && e.type !== "틸로사우르스") {
-            e.type = "틸로사우르스";
-          }
+          e.speed = e.baseSpeed * 1.15;
         }
 
         // 켈렌불라레 번식
@@ -1338,35 +1349,42 @@
         // 먹이사슬 서열 탐색
         const myRank = FOOD_CHAIN_RANK[e.species] || 0;
         let preyTarget = null;
-        let nearestPreyDist = e.species === "틸로사우르스" ? 420 : 280;
+        let nearestPreyDist = e.species === "틸로사우르스" ? 280 : 280;
 
         if (myRank > 1) {
-          for (let k = 0; k < entities.length; k++) {
-            const candidate = entities[k];
-            if (candidate === e || candidate.species === "하스트수리") continue;
-            if (candidate.species === "투구게" && candidate.stage === "EGG") continue;
+          // 틸로사우르스는 한 번 사냥한 후 4.5초 휴식 시간 동안 과도하게 남획하지 않음
+          const canHuntNow = !(e.species === "틸로사우르스" && now < (e.huntCooldownUntil || 0));
 
-            // 틸로사우르스는 오로지 투구게만 사냥 대상으로 삼음
-            if (e.species === "틸로사우르스" && candidate.species !== "투구게") continue;
+          if (canHuntNow) {
+            for (let k = 0; k < entities.length; k++) {
+              const candidate = entities[k];
+              if (candidate === e || candidate.species === "하스트수리") continue;
+              if (candidate.species === "투구게" && candidate.stage === "EGG") continue;
 
-            const candRank = FOOD_CHAIN_RANK[candidate.species] || 0;
+              // 틸로사우르스는 오로지 바다 속 투구게만 사냥함
+              if (e.species === "틸로사우르스") {
+                if (candidate.species !== "투구게") continue;
+                if (!isStrictlyInOcean(candidate.x, candidate.width)) continue;
+              }
 
-            if (candRank > 0 && candRank < myRank) {
-              const candInWater = isWaterArea(candidate.x, candidate.y, candidate.width);
-              if (e.type === "히네리아" && !candInWater) continue;
-              if (e.species === "틸로사우르스" && now >= (e.landVisitUntil || 0) && !candInWater) continue;
-              if (
-                e.species !== "이크티오스테가" &&
-                e.type !== "하체고프테릭스" &&
-                e.type !== "히네리아" &&
-                e.species !== "틸로사우르스" &&
-                candInWater
-              ) continue;
+              const candRank = FOOD_CHAIN_RANK[candidate.species] || 0;
 
-              const pDist = Math.hypot((candidate.x + candidate.width / 2) - eCenterX, (candidate.y + candidate.height / 2) - eCenterY);
-              if (pDist < nearestPreyDist) {
-                nearestPreyDist = pDist;
-                preyTarget = candidate;
+              if (candRank > 0 && candRank < myRank) {
+                const candInWater = isWaterArea(candidate.x, candidate.y, candidate.width);
+                if (e.type === "히네리아" && !candInWater) continue;
+                if (
+                  e.species !== "이크티오스테가" &&
+                  e.type !== "하체고프테릭스" &&
+                  e.type !== "히네리아" &&
+                  e.species !== "틸로사우르스" &&
+                  candInWater
+                ) continue;
+
+                const pDist = Math.hypot((candidate.x + candidate.width / 2) - eCenterX, (candidate.y + candidate.height / 2) - eCenterY);
+                if (pDist < nearestPreyDist) {
+                  nearestPreyDist = pDist;
+                  preyTarget = candidate;
+                }
               }
             }
           }
@@ -1378,8 +1396,8 @@
         let seekWaterForGrow = false;
 
         if (e.species === "투구게" && e.stage !== "EGG") {
-          const isReadyMale = (e.gender === "♂" && e.stage === "ADULT" && (e.hunger || 0) >= 70 && (e.maturity || 0) >= 75 && currentCrabCount < MAX_HORSESHOE_CRABS);
-          const isReadyFemale = (e.gender === "♀" && e.stage === "ADULT" && (e.maturity || 0) >= 90 && (now - (e.lastLayTime || 0) > 20000) && currentCrabCount < MAX_HORSESHOE_CRABS);
+          const isReadyMale = (e.gender === "♂" && e.stage === "ADULT" && (e.hunger || 0) >= 65 && (e.maturity || 0) >= 75 && currentCrabCount < MAX_HORSESHOE_CRABS);
+          const isReadyFemale = (e.gender === "♀" && e.stage === "ADULT" && (e.maturity || 0) >= 85 && (now - (e.lastLayTime || 0) > 18000) && currentCrabCount < MAX_HORSESHOE_CRABS);
 
           if (isReadyFemale && spermZones.length > 0) {
             let bestDist = 520;
@@ -1395,7 +1413,6 @@
           if ((isReadyMale || isReadyFemale) && !isSandbarArea(e.x, e.y, e.width)) {
             seekSandbarForBreed = true;
           } else if (!isReadyMale && !isReadyFemale && isSandbarArea(e.x, e.y, e.width)) {
-            // 번식 준비가 안 되었거나(새끼 포함) 산란을 마친 투구게는 다시 물속으로 이동
             seekWaterForGrow = true;
           }
         }
@@ -1419,7 +1436,6 @@
           e.x += Math.cos(e.angle) * (e.speed * 1.4);
           e.y += Math.sin(e.angle) * (e.speed * 1.4);
         } else if (!e.isTarget && e.species !== "켈렌불라레" && e.species !== "틸로사우르스" && distance < 420) {
-          // 틸로사우르스는 플레이어(하스트수리)를 쫓지 않고 투구게만 사냥함
           if (e.chaseState === "IDLE") {
             e.chaseState = "CHASING";
             e.chaseTimer = now;
@@ -1473,8 +1489,8 @@
             (preyTarget.x + preyTarget.width / 2) - eCenterX
           );
           e.angle = preyAngle;
-          e.x += Math.cos(preyAngle) * (e.speed * 1.25);
-          e.y += Math.sin(preyAngle) * (e.speed * 1.25);
+          e.x += Math.cos(preyAngle) * (e.speed * 1.2);
+          e.y += Math.sin(preyAngle) * (e.speed * 1.2);
         } else {
           e.chaseState = "IDLE";
           e.isResting = false;
@@ -1498,7 +1514,6 @@
             e.angle = Math.PI - e.angle + (Math.random() - 0.5) * 0.4;
           }
         } else if (e.species === "투구게") {
-          // 투구게는 물(강/바다)과 모래톱 영역 내에서 자유롭게 오가며 번식 (숲 안쪽은 침범 불가)
           const onWaterOrSand = inWater || isSandbarArea(e.x, e.y, e.width);
           if (!onWaterOrSand) {
             e.x = prevX;
@@ -1506,18 +1521,10 @@
             e.angle = Math.PI - e.angle + (Math.random() - 0.5) * 0.4;
           }
         } else if (e.species === "틸로사우르스") {
-          if (!inWater && now >= (e.landVisitUntil || 0)) {
-            if (isWaterArea(prevX, prevY, e.width)) {
-              e.x = prevX;
-              e.y = prevY;
-              e.angle = Math.PI - e.angle + (Math.random() - 0.5) * 0.4;
-            } else {
-              const toOcean = Math.abs((e.x + e.width / 2) - OCEAN_START);
-              const toRiver = Math.abs((e.x + e.width / 2) - ((RIVER_START + RIVER_END) / 2));
-              const targetWaterX = toOcean < toRiver ? OCEAN_START + 80 : (RIVER_START + RIVER_END) / 2;
-              e.angle = Math.atan2(0, targetWaterX - (e.x + e.width / 2));
-              e.x += Math.cos(e.angle) * (e.baseSpeed * 1.1);
-            }
+          // 틸로사우르스는 오직 바다(OCEAN_START + 12 이상)에서만 살아가며 육지나 강으로 나가지 못함
+          if (e.x < OCEAN_START + 12) {
+            e.x = OCEAN_START + 12;
+            e.angle = (Math.random() - 0.5) * 0.8;
           }
         } else if (e.species !== "이크티오스테가" && e.type !== "하체고프테릭스") {
           if (inWater) {
@@ -1535,13 +1542,20 @@
             if (!victim || victim.species === "하스트수리") continue;
             if (victim.species === "투구게" && victim.stage === "EGG") continue;
 
-            // 틸로사우르스는 오로지 투구게만 잡아먹음
-            if (e.species === "틸로사우르스" && victim.species !== "투구게") continue;
+            // 틸로사우르스는 오로지 바다의 투구게만 잡아먹음
+            if (e.species === "틸로사우르스") {
+              if (victim.species !== "투구게") continue;
+              if (now < (e.huntCooldownUntil || 0)) continue;
+              if (!isStrictlyInOcean(victim.x, victim.width)) continue;
+            }
 
             const vRank = FOOD_CHAIN_RANK[victim.species] || 0;
 
             if (vRank > 0 && vRank < myRank && checkCollision(e, victim)) {
               e.hp = Math.min(e.maxHp, e.hp + 20);
+              if (e.species === "틸로사우르스") {
+                e.huntCooldownUntil = now + 4500;
+              }
               if (victim.species === "투구게") currentCrabCount--;
               entities.splice(j, 1);
               if (j < i) i--;
@@ -1550,7 +1564,7 @@
           }
         }
 
-        // 플레이어 충돌 (틸로사우르스는 투구게만 사냥하므로 플레이어에게 피해를 주지 않음)
+        // 플레이어 충돌
         if (checkCollision(player, e)) {
           if (e.species === "투구게" && e.stage === "EGG") continue;
 
@@ -1736,12 +1750,10 @@
       });
     }
 
-    // 첨부 이미지 기반 틸로사우르스 외형 (청회색 등줄기, 은백색 배, 굽이치는 노 모양 꼬리 지느러미, 4개의 패들, 붉은 입안과 이빨)
     function drawTylosaurus(w, h, state) {
       const isHunting = state === "HUNTING";
       const swimWave = Math.sin(Date.now() / 160) * (h * 0.08);
 
-      // 1. 길고 넓적한 노 모양 꼬리 지느러미 (사진처럼 부드럽게 굽이치는 청회색 꼬리)
       const tailGrad = ctx.createLinearGradient(-w * 0.54, 0, -w * 0.05, 0);
       tailGrad.addColorStop(0, "#7f96a8");
       tailGrad.addColorStop(0.5, "#60788c");
@@ -1756,7 +1768,6 @@
       ctx.closePath();
       ctx.fill();
 
-      // 꼬리 중앙 척추 능선 음영
       ctx.strokeStyle = "rgba(44, 62, 80, 0.45)";
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -1764,11 +1775,10 @@
       ctx.quadraticCurveTo(-w * 0.34, swimWave * 0.8, -w * 0.52, swimWave);
       ctx.stroke();
 
-      // 2. 앞뒤 4개의 지느러미발(패들)
       ctx.fillStyle = "#5c7387";
       ctx.strokeStyle = "#3b4d5c";
       ctx.lineWidth = 1.2;
-      // 앞지느러미 (크고 넓적함)
+
       ctx.beginPath();
       ctx.ellipse(w * 0.10, -h * 0.34, w * 0.068, h * 0.21, -0.45, 0, Math.PI * 2);
       ctx.fill(); ctx.stroke();
@@ -1776,7 +1786,6 @@
       ctx.ellipse(w * 0.10, h * 0.34, w * 0.068, h * 0.21, 0.45, 0, Math.PI * 2);
       ctx.fill(); ctx.stroke();
 
-      // 뒷지느러미 (조금 작음)
       ctx.beginPath();
       ctx.ellipse(-w * 0.14, -h * 0.28, w * 0.052, h * 0.16, -0.5, 0, Math.PI * 2);
       ctx.fill(); ctx.stroke();
@@ -1784,7 +1793,6 @@
       ctx.ellipse(-w * 0.14, h * 0.28, w * 0.052, h * 0.16, 0.5, 0, Math.PI * 2);
       ctx.fill(); ctx.stroke();
 
-      // 3. 유선형 거대 몸통 (청회색 등 + 은백색 배 광택)
       const bodyGrad = ctx.createLinearGradient(0, -h * 0.28, 0, h * 0.28);
       bodyGrad.addColorStop(0, "#4c6375");
       bodyGrad.addColorStop(0.5, "#8da3b5");
@@ -1795,7 +1803,6 @@
       ctx.ellipse(0, 0, w * 0.23, h * 0.27, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // 등쪽 어두운 반점/줄무늬 음영
       ctx.fillStyle = "rgba(42, 58, 72, 0.35)";
       [-0.22, -0.11, 0.0, 0.10].forEach((pos, idx) => {
         ctx.beginPath();
@@ -1803,7 +1810,6 @@
         ctx.fill();
       });
 
-      // 4. 사냥 중일 때 벌어진 붉은 입안 & 촘촘한 이빨 표현
       if (isHunting) {
         ctx.fillStyle = "#8e2424";
         ctx.beginPath();
@@ -1814,7 +1820,6 @@
         ctx.closePath();
         ctx.fill();
 
-        // 하얀 이빨 열
         ctx.fillStyle = "#f8f9fa";
         for (let t = 0.25; t <= 0.45; t += 0.035) {
           ctx.beginPath();
@@ -1824,7 +1829,6 @@
         }
       }
 
-      // 5. 길고 날렵한 주둥이와 머리
       ctx.fillStyle = "#526a7d";
       ctx.beginPath();
       ctx.moveTo(w * 0.17, -h * 0.19);
@@ -1834,7 +1838,6 @@
       ctx.closePath();
       ctx.fill();
 
-      // 주둥이 중앙 콧등 능선
       ctx.strokeStyle = "#364959";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -1842,7 +1845,6 @@
       ctx.lineTo(w * 0.49, 0);
       ctx.stroke();
 
-      // 눈
       ctx.fillStyle = isHunting ? "#ff4757" : "#2c3e50";
       ctx.beginPath();
       ctx.arc(w * 0.27, -h * 0.105, 3.0, 0, Math.PI * 2);
@@ -2336,7 +2338,8 @@
 
           ctx.restore();
 
-          if (!(e.species === "투구게" && e.stage === "EGG")) {
+          // 무적인 틸로사우르스와 알은 체력바 숨김
+          if (!(e.species === "투구게" && e.stage === "EGG") && !e.isImmortal) {
             ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
             ctx.fillRect(screenX - 24, screenY - e.height / 2 - 14, 48, 4);
             ctx.fillStyle = (e.isTarget || e.species === "켈렌불라레") ? "#2ecc71" : "#ff4757";
